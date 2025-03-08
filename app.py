@@ -8,6 +8,7 @@ import numpy as np
 if not hasattr(np, 'bool'):
     np.bool = bool
 
+import base64
 import streamlit as st
 import pandas as pd
 import joblib
@@ -26,93 +27,81 @@ except ModuleNotFoundError:
     st_autorefresh = lambda **kwargs: 0  # dummy function returning 0 refresh count
     st.warning("streamlit-autorefresh module not found. Auto-refresh simulation will be disabled.")
 
+# ---------------------- Utility Functions ----------------------
+def get_base64_of_bin_file(bin_file):
+    """
+    Read a binary file and return its base64 encoded string.
+    """
+    with open(bin_file, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+def get_img_with_base64(file_path):
+    """
+    Return the base64 encoded string formatted for CSS use.
+    """
+    img_base64 = get_base64_of_bin_file(file_path)
+    return f"data:image/jpeg;base64,{img_base64}"
+
 # ---------------------- Page Configuration ----------------------
 st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
 
 # ---------------------- Theme Toggle CSS ----------------------
 theme_choice = st.sidebar.radio("Select Theme", ["Light", "Dark"])
 if theme_choice == "Dark":
-    st.markdown("""
-        <style>
-        /* Dark theme styling */
-        .stApp {
-            background-color: #1E1E2F;
-            color: #D6D6E0;
-            font-family: 'Segoe UI', sans-serif;
-        }
-        h1, h2, h3, h4, h5, h6, p, label {
-            color: #FFFFFF;
-        }
-        [data-testid="stSidebar"] {
-            background-color: #2A2A3D;
-        }
-        [data-testid="stSidebar"] * {
-            color: #FFFFFF;
-        }
-        .block-container {
-            background-color: #1E1E2F;
-        }
-        .stButton>button {
-            background-color: #3C3C55;
-            color: #FFFFFF;
-            border: none;
-            border-radius: 4px;
-            padding: 0.5rem 1rem;
-        }
-        .stButton>button:hover {
-            background-color: #57578A;
-        }
-        .stMetric {
-            background-color: #2A2A3D;
-            border: 1px solid #3C3C55;
-            border-radius: 8px;
-        }
-        .main .element-container {
-            background-color: #1E1E2F;
-        }
-        </style>
-        """, unsafe_allow_html=True)
+    sidebar_bg = "#2A2A3D"
+    app_bg = "#1E1E2F"
+    text_color = "#FFFFFF"
+    btn_bg = "#3C3C55"
+    btn_hover = "#57578A"
+    metric_bg = "#2A2A3D"
 else:
-    st.markdown("""
-        <style>
-        /* Light theme styling */
-        .stApp {
-            background-color: #F7F7F7;
-            color: #333333;
-            font-family: 'Segoe UI', sans-serif;
-        }
-        h1, h2, h3, h4, h5, h6, p, label {
-            color: #333333;
-        }
-        [data-testid="stSidebar"] {
-            background-color: #FFFFFF;
-        }
-        [data-testid="stSidebar"] * {
-            color: #333333;
-        }
-        .block-container {
-            background-color: #FFFFFF;
-        }
-        .stButton>button {
-            background-color: #E0E0E0;
-            color: #333333;
-            border: none;
-            border-radius: 4px;
-            padding: 0.5rem 1rem;
-        }
-        .stButton>button:hover {
-            background-color: #CCCCCC;
-        }
-        .stMetric {
-            background-color: #F0F0F0;
-            border: 1px solid #CCCCCC;
-            border-radius: 8px;
-        }
-        .main .element-container {
-            background-color: #FFFFFF;
-        }
-        </style>
-        """, unsafe_allow_html=True)
+    sidebar_bg = "#FFFFFF"
+    app_bg = "#F7F7F7"
+    text_color = "#333333"
+    btn_bg = "#E0E0E0"
+    btn_hover = "#CCCCCC"
+    metric_bg = "#F0F0F0"
+
+st.markdown(f"""
+    <style>
+    .stApp {{
+        background-color: {app_bg};
+        color: {text_color};
+        font-family: 'Segoe UI', sans-serif;
+    }}
+    h1, h2, h3, h4, h5, h6, p, label {{
+        color: {text_color};
+    }}
+    [data-testid="stSidebar"] {{
+        background-color: {sidebar_bg};
+    }}
+    [data-testid="stSidebar"] * {{
+        color: {text_color};
+    }}
+    .block-container {{
+        background-color: {app_bg};
+    }}
+    .stButton>button {{
+        background-color: {btn_bg};
+        color: {text_color};
+        border: none;
+        border-radius: 4px;
+        padding: 0.5rem 1rem;
+    }}
+    .stButton>button:hover {{
+        background-color: {btn_hover};
+    }}
+    .stMetric {{
+        background-color: {metric_bg};
+        border: 1px solid #CCCCCC;
+        border-radius: 8px;
+    }}
+    .main .element-container {{
+        background-color: {app_bg};
+    }}
+    </style>
+    """, unsafe_allow_html=True)
 
 # ---------------------- Caching for Model & Scaler ----------------------
 @st.cache_resource
@@ -168,11 +157,17 @@ tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights
 
 # ---------------------- Tab 0: Home ----------------------
 with tabs[0]:
-    # A div with a background image (sepsis.jpg) covering the container
-    st.markdown("""
+    # Check if the image file exists and load it as base64
+    img_path = "sepsis.jpg"
+    if os.path.exists(img_path):
+        img_base64 = get_img_with_base64(img_path)
+    else:
+        img_base64 = "https://via.placeholder.com/1000x400?text=Image+Not+Found"
+    
+    st.markdown(f"""
     <style>
-    .home-background {
-         background-image: url('sepsis.jpg');
+    .home-background {{
+         background-image: url('{img_base64}');
          background-size: cover;
          background-position: center;
          min-height: 400px;
@@ -181,7 +176,7 @@ with tabs[0]:
          text-align: center;
          color: white;
          box-shadow: 0px 4px 8px rgba(0,0,0,0.3);
-    }
+    }}
     </style>
     <div class="home-background">
          <h1 style="font-size: 3.5em; margin-bottom: 0;">ICU Sepsis Monitoring System</h1>
