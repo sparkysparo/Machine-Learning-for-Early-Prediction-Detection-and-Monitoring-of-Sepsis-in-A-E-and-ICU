@@ -10,3 +10,4 @@ xgboost==1.7.3
 joblib>=1.2.0
 setuptools>=65.5.1
 streamlit>=1.10.0
+plotly>=5.0.0
