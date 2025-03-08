@@ -74,6 +74,15 @@ def predict_sepsis_risk(df):
     }
 
 # -------------------------------
+# Initialize Session State for Patient Data Log
+# -------------------------------
+if "patient_data_log" not in st.session_state:
+    st.session_state.patient_data_log = pd.DataFrame(columns=[
+        "Timestamp", "Patient_ID", "Patient_Name", "Plasma_glucose", "Blood_Work_R1",
+        "Blood_Pressure", "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age", "Sepsis_Risk"
+    ])
+
+# -------------------------------
 # App Title & Introduction
 # -------------------------------
 st.title("🏥 ICU Sepsis Monitoring System")
@@ -84,11 +93,24 @@ Enter the patient’s details and vital signs, then click **Submit Patient Data*
 st.markdown("---")
 
 # -------------------------------
-# Sidebar: Patient Information & Vital Signs Input
+# Sidebar: Patient Selection and Input
 # -------------------------------
 st.sidebar.header("📝 Patient Information")
-patient_id = st.sidebar.text_input("Patient ID", placeholder="e.g., 12345", help="Enter the unique patient identifier.")
-patient_name = st.sidebar.text_input("Patient Name", placeholder="e.g., John Doe", help="Enter the patient's full name.")
+
+# Dropdown to select existing patients or add a new one
+patient_list = st.session_state.patient_data_log["Patient_ID"].unique().tolist()
+patient_list.insert(0, "Add New Patient")
+selected_patient = st.sidebar.selectbox("Select Patient", patient_list)
+
+if selected_patient == "Add New Patient":
+    patient_id = st.sidebar.text_input("Patient ID", placeholder="e.g., 12345", help="Enter the unique patient identifier.")
+    patient_name = st.sidebar.text_input("Patient Name", placeholder="e.g., John Doe", help="Enter the patient's full name.")
+else:
+    # Pre-fill patient details if an existing patient is selected
+    patient_data = st.session_state.patient_data_log[st.session_state.patient_data_log["Patient_ID"] == selected_patient].iloc[-1]
+    patient_id = patient_data["Patient_ID"]
+    patient_name = patient_data["Patient_Name"]
+    st.sidebar.write(f"**Selected Patient:** {patient_name} (ID: {patient_id})")
 
 st.sidebar.markdown("---")
 st.sidebar.header("📊 Vital Signs Input")
@@ -101,15 +123,6 @@ BD2 = st.sidebar.slider("Blood Work R4 (BD2)", 0.0, 5.0, 1.0, step=0.1, help="Bl
 Age = st.sidebar.slider("Patient Age", 18, 100, 40, step=1, help="Patient's age in years.")
 
 submit_btn = st.sidebar.button("✅ Submit Patient Data")
-
-# -------------------------------
-# Initialize Session State for Patient Data Log
-# -------------------------------
-if "patient_data_log" not in st.session_state:
-    st.session_state.patient_data_log = pd.DataFrame(columns=[
-        "Timestamp", "Patient_ID", "Patient_Name", "Plasma_glucose", "Blood_Work_R1",
-        "Blood_Pressure", "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age", "Sepsis_Risk"
-    ])
 
 # -------------------------------
 # Process Input When Submit Button is Clicked
@@ -137,9 +150,10 @@ if submit_btn:
 
     # Update the patient data log
     if patient_id.strip() in st.session_state.patient_data_log["Patient_ID"].astype(str).values:
-        st.session_state.patient_data_log.loc[
-            st.session_state.patient_data_log["Patient_ID"] == patient_id.strip()
-        ] = patient_data.values
+        st.session_state.patient_data_log = pd.concat(
+            [st.session_state.patient_data_log, patient_data],
+            ignore_index=True
+        )
     else:
         st.session_state.patient_data_log = pd.concat(
             [st.session_state.patient_data_log, patient_data],
@@ -157,11 +171,17 @@ if submit_btn:
 # -------------------------------
 st.markdown("---")
 st.subheader("📋 Patient Data Log")
-st.dataframe(st.session_state.patient_data_log)
+
+# Filter data log for the selected patient
+if selected_patient != "Add New Patient":
+    filtered_log = st.session_state.patient_data_log[st.session_state.patient_data_log["Patient_ID"] == selected_patient]
+    st.dataframe(filtered_log)
+else:
+    st.dataframe(st.session_state.patient_data_log)
 
 # Interactive Bar Chart: Latest Patient Vitals
-if not st.session_state.patient_data_log.empty:
-    last_record = st.session_state.patient_data_log.iloc[-1]
+if not st.session_state.patient_data_log.empty and selected_patient != "Add New Patient":
+    last_record = filtered_log.iloc[-1]
     vitals = ["Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"]
     values = [last_record[v] for v in vitals]
     df_vitals = pd.DataFrame({"Vital": vitals, "Value": values})
@@ -170,15 +190,70 @@ if not st.session_state.patient_data_log.empty:
     st.plotly_chart(fig_bar)
 
 # Interactive Line Chart: Sepsis Risk Progression Over Time
-if not st.session_state.patient_data_log.empty:
-    df_line = st.session_state.patient_data_log.copy()
+if not st.session_state.patient_data_log.empty and selected_patient != "Add New Patient":
+    df_line = filtered_log.copy()
     df_line["Timestamp_dt"] = pd.to_datetime(df_line["Timestamp"], format="%H:%M:%S", errors='coerce')
+    
+    # Create the line chart
     fig_line = px.line(
-        df_line, x="Timestamp_dt", y="Sepsis_Risk", color="Patient_ID", markers=True,
-        title="📈 Sepsis Risk Progression Over Time", line_shape="spline"
+        df_line, 
+        x="Timestamp_dt", 
+        y="Sepsis_Risk", 
+        color="Patient_ID", 
+        markers=True,
+        title="📈 Sepsis Risk Progression Over Time",
+        labels={"Timestamp_dt": "Time", "Sepsis_Risk": "Sepsis Risk Probability"},
+        line_shape="spline",  # Smooth line
+        template="plotly_white",  # Clean and modern theme
     )
-    fig_line.add_hline(y=0.3, line_dash="dash", annotation_text="Low Risk Threshold", annotation_position="bottom left")
-    fig_line.add_hline(y=0.7, line_dash="dash", annotation_text="High Risk Threshold", annotation_position="top left")
+    
+    # Add threshold lines and annotations
+    fig_line.add_hline(
+        y=0.3, 
+        line_dash="dash", 
+        line_color="orange", 
+        annotation_text="Low Risk Threshold", 
+        annotation_position="bottom left"
+    )
+    fig_line.add_hline(
+        y=0.7, 
+        line_dash="dash", 
+        line_color="red", 
+        annotation_text="High Risk Threshold", 
+        annotation_position="top left"
+    )
+    
+    # Add shaded areas for risk zones
+    fig_line.add_hrect(
+        y0=0, y1=0.3, 
+        fillcolor="green", opacity=0.1, 
+        annotation_text="Low Risk Zone", annotation_position="top left"
+    )
+    fig_line.add_hrect(
+        y0=0.3, y1=0.7, 
+        fillcolor="orange", opacity=0.1, 
+        annotation_text="Moderate Risk Zone", annotation_position="top left"
+    )
+    fig_line.add_hrect(
+        y0=0.7, y1=1.0, 
+        fillcolor="red", opacity=0.1, 
+        annotation_text="High Risk Zone", annotation_position="top left"
+    )
+    
+    # Customize hover data
+    fig_line.update_traces(
+        hovertemplate="<b>Time:</b> %{x|%H:%M:%S}<br><b>Risk:</b> %{y:.2f}<extra></extra>"
+    )
+    
+    # Update layout for better readability
+    fig_line.update_layout(
+        xaxis_title="Time",
+        yaxis_title="Sepsis Risk Probability",
+        legend_title="Patient ID",
+        hovermode="x unified",  # Show hover data for all traces at once
+        font=dict(size=12),
+    )
+    
     st.plotly_chart(fig_line)
 
 # Clinical Insights
