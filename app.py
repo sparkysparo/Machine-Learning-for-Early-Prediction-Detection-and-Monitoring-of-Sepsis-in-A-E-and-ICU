@@ -12,23 +12,61 @@ import plotly.express as px
 import shap  # Ensure shap is installed (pip install shap)
 from sklearn.preprocessing import StandardScaler
 
-# ---------------------- Page Configuration & Theme ----------------------
+# ---------------------- Page Configuration ----------------------
 st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
 
-# Sidebar theme toggle using updated CSS injection for recent Streamlit versions.
+# ---------------------- Theme Toggle CSS ----------------------
+# You can customize these CSS settings to suit your preferences.
 theme_choice = st.sidebar.radio("Select Theme", ["Light", "Dark"])
 if theme_choice == "Dark":
     st.markdown("""
         <style>
-        .stApp {
-            background-color: #333 !important;
-            color: #fff;
+        /* Apply background and text color for the entire app */
+        body, .stApp {
+            background-color: #2C2C2C;
+            color: #F0F0F0;
         }
-        /* Update sidebar background */
+        /* Header, paragraphs, and other text elements */
+        h1, h2, h3, h4, h5, h6, p, label, .stMetric {
+            color: #F0F0F0;
+        }
+        /* Sidebar styling */
         .css-1d391kg, .css-1d391kg .block-container {
-            background-color: #444 !important;
+            background-color: #1F1F1F;
+            color: #F0F0F0;
         }
-        /* Update any other elements as needed */
+        /* Container styling for blocks */
+        .block-container {
+            background-color: #2C2C2C;
+        }
+        /* Button styling */
+        .stButton>button {
+            background-color: #444444;
+            color: #F0F0F0;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+        <style>
+        body, .stApp {
+            background-color: #FFFFFF;
+            color: #333333;
+        }
+        h1, h2, h3, h4, h5, h6, p, label, .stMetric {
+            color: #333333;
+        }
+        .css-1d391kg, .css-1d391kg .block-container {
+            background-color: #f0f2f6;
+            color: #333333;
+        }
+        .block-container {
+            background-color: #FFFFFF;
+        }
+        .stButton>button {
+            background-color: #e0e0e0;
+            color: #333333;
+        }
         </style>
         """, unsafe_allow_html=True)
 
@@ -70,7 +108,6 @@ with tab1:
         patient_name_input = st.text_input("Enter Patient Name", help="Full name of the patient")
     else:
         if not st.session_state.patient_data_log.empty:
-            # Build a list of existing patients with their ID and Name for clarity
             existing_patients = st.session_state.patient_data_log[["Patient_ID", "Patient_Name"]].drop_duplicates()
             options = [f"{row['Patient_ID']} - {row['Patient_Name']}" for index, row in existing_patients.iterrows()]
             selected_patient_option = st.selectbox("Select Patient", options)
@@ -79,7 +116,6 @@ with tab1:
             st.info("No existing patient data available. Switch to 'New Patient' mode.")
     
     st.subheader("Enter Vital Signs")
-    # Updated vital sign sliders with extreme maximum values
     PRG = st.slider("PRG (Plasma Glucose)", 0, 600, 100, help="Glucose level in plasma (mg/dL)")
     PL = st.slider("PL (Blood Work R1)", 50, 500, 120, help="Result from blood work test R1")
     PR = st.slider("PR (Blood Pressure)", 40, 300, 80, help="Blood pressure reading (mm Hg)")
@@ -100,7 +136,6 @@ with tab1:
             "Blood_Work_R4": BD2,
             "Patient_age": Age
         }
-        
         if patient_mode == "New Patient":
             if patient_id_input.strip() == "" or patient_name_input.strip() == "":
                 st.error("Please enter both Patient ID and Patient Name for a new patient.")
@@ -116,7 +151,7 @@ with tab1:
                     st.session_state.patient_data_log["Patient_ID"] == selected_patient_id, "Patient_Name"
                 ].iloc[-1]
                 data_dict["Patient_Name"] = existing_name
-
+        
         input_df = pd.DataFrame([[
             data_dict["Plasma_glucose"],
             data_dict["Blood_Work_R1"],
@@ -162,7 +197,6 @@ with tab2:
     if st.session_state.patient_data_log.empty:
         st.info("No patient data available yet.")
     else:
-        # Checkbox to toggle the risk line graph
         show_risk_line = st.checkbox("Show Sepsis Risk Trend", value=True)
         if show_risk_line:
             st.subheader("Sepsis Risk Trend Over Time")
@@ -176,7 +210,6 @@ with tab2:
                 title="Sepsis Risk Progression Over Time"
             )
             st.plotly_chart(fig_trend, use_container_width=True)
-        
         st.subheader("Patient Data Log")
         st.dataframe(st.session_state.patient_data_log)
 
@@ -185,25 +218,23 @@ with tab3:
     st.header("Model Insights")
     st.write("Generating SHAP feature importance for: **Gradient Boosting Model**")
     
+    # Use all seven features to match scaler's fit
     if st.session_state.patient_data_log.empty:
         st.info("No patient data available for SHAP analysis. Using a dummy sample.")
         X_train = pd.DataFrame({
             "Plasma_glucose": np.linspace(100, 150, 10),
             "Blood_Work_R1": np.linspace(120, 160, 10),
+            "Blood_Work_Pressure": np.linspace(80, 120, 10),
             "Blood_Work_R3": np.linspace(30, 50, 10),
-            "Blood_Work_Pressure": np.linspace(80, 120, 10),  # renamed for consistency if needed
             "BMI": np.linspace(25, 30, 10),
             "Blood_Work_R4": np.linspace(0.5, 1.0, 10),
             "Patient_age": np.linspace(40, 60, 10)
         })
     else:
         X_train = st.session_state.patient_data_log[[
-            "Plasma_glucose", "Blood_Work_R1", "Blood_Work_R3", 
-            "Blood_Work_R4", "Patient_age"
+            "Plasma_glucose", "Blood_Work_R1", "Blood_Work_Pressure", 
+            "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"
         ]]
-        # In this example, we omit Blood Pressure and BMI from SHAP for brevity;
-        # you can add them back if desired.
-        
     X_train_scaled = scaler.transform(X_train)
     
     explainer = shap.Explainer(gb_model)
