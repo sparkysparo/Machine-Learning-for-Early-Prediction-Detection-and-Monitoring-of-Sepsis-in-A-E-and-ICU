@@ -15,22 +15,22 @@ from sklearn.preprocessing import StandardScaler
 # ---------------------- Page Configuration & Theme ----------------------
 st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
 
-# Sidebar theme toggle (simple CSS injection)
+# Sidebar theme toggle using updated CSS injection for recent Streamlit versions.
 theme_choice = st.sidebar.radio("Select Theme", ["Light", "Dark"])
 if theme_choice == "Dark":
-    st.markdown(
-         """
-         <style>
-         .reportview-container {
-             background: #333;
-             color: #fff;
-         }
-         .sidebar .sidebar-content {
-             background: #444;
-         }
-         </style>
-         """, unsafe_allow_html=True
-    )
+    st.markdown("""
+        <style>
+        .stApp {
+            background-color: #333 !important;
+            color: #fff;
+        }
+        /* Update sidebar background */
+        .css-1d391kg, .css-1d391kg .block-container {
+            background-color: #444 !important;
+        }
+        /* Update any other elements as needed */
+        </style>
+        """, unsafe_allow_html=True)
 
 # ---------------------- Caching for Model & Scaler ----------------------
 @st.cache_resource
@@ -79,10 +79,11 @@ with tab1:
             st.info("No existing patient data available. Switch to 'New Patient' mode.")
     
     st.subheader("Enter Vital Signs")
-    PRG = st.slider("PRG (Plasma Glucose)", 0, 500, 100, help="Glucose level in plasma (mg/dL)")
-    PL = st.slider("PL (Blood Work R1)", 50, 350, 120, help="Result from blood work test R1")
+    # Updated vital sign sliders with extreme maximum values
+    PRG = st.slider("PRG (Plasma Glucose)", 0, 600, 100, help="Glucose level in plasma (mg/dL)")
+    PL = st.slider("PL (Blood Work R1)", 50, 500, 120, help="Result from blood work test R1")
     PR = st.slider("PR (Blood Pressure)", 40, 300, 80, help="Blood pressure reading (mm Hg)")
-    SK = st.slider("SK (Blood Work R3)", 0, 200, 30, help="Result from blood work test R3")
+    SK = st.slider("SK (Blood Work R3)", 0, 300, 30, help="Result from blood work test R3")
     M11 = st.slider("M11 (BMI)", 10.0, 70.0, 25.0, help="Body Mass Index (kg/m²)")
     BD2 = st.slider("BD2 (Blood Work R4)", 0.0, 7.0, 0.5, help="Result from blood work test R4")
     Age = st.slider("Age", 18, 110, 40, help="Patient age in years (max capped at 110)")
@@ -161,7 +162,7 @@ with tab2:
     if st.session_state.patient_data_log.empty:
         st.info("No patient data available yet.")
     else:
-        # Add a checkbox to toggle the risk line graph
+        # Checkbox to toggle the risk line graph
         show_risk_line = st.checkbox("Show Sepsis Risk Trend", value=True)
         if show_risk_line:
             st.subheader("Sepsis Risk Trend Over Time")
@@ -189,17 +190,19 @@ with tab3:
         X_train = pd.DataFrame({
             "Plasma_glucose": np.linspace(100, 150, 10),
             "Blood_Work_R1": np.linspace(120, 160, 10),
-            "Blood_Pressure": np.linspace(80, 120, 10),
             "Blood_Work_R3": np.linspace(30, 50, 10),
+            "Blood_Work_Pressure": np.linspace(80, 120, 10),  # renamed for consistency if needed
             "BMI": np.linspace(25, 30, 10),
             "Blood_Work_R4": np.linspace(0.5, 1.0, 10),
             "Patient_age": np.linspace(40, 60, 10)
         })
     else:
         X_train = st.session_state.patient_data_log[[
-            "Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", 
-            "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"
+            "Plasma_glucose", "Blood_Work_R1", "Blood_Work_R3", 
+            "Blood_Work_R4", "Patient_age"
         ]]
+        # In this example, we omit Blood Pressure and BMI from SHAP for brevity;
+        # you can add them back if desired.
         
     X_train_scaled = scaler.transform(X_train)
     
@@ -209,9 +212,8 @@ with tab3:
     st.write("### SHAP Summary Plot")
     fig = plt.figure(figsize=(10, 6))
     try:
-        # Disable the colorbar to avoid the unwanted graph elements
+        # Disable the colorbar to avoid extra graph elements
         shap.summary_plot(shap_values, X_train, show=False, color_bar=False)
-        # Remove any residual colorbar images from the figure's axes
         for ax in fig.axes:
             if hasattr(ax, 'images') and len(ax.images) > 0:
                 ax.images = []
