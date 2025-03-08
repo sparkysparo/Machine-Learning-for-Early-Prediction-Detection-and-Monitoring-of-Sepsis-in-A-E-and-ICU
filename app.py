@@ -29,11 +29,13 @@ except ModuleNotFoundError:
 
 # ---------------------- Utility Functions ----------------------
 def get_base64_of_bin_file(bin_file):
+    """Read a binary file and return its base64 encoded string."""
     with open(bin_file, "rb") as f:
         data = f.read()
     return base64.b64encode(data).decode()
 
 def get_img_with_base64(file_path):
+    """Return the base64 string formatted for CSS."""
     img_base64 = get_base64_of_bin_file(file_path)
     return f"data:image/jpeg;base64,{img_base64}"
 
@@ -151,53 +153,55 @@ tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights
 
 # ---------------------- Tab 0: Home ----------------------
 with tabs[0]:
-    # Get the background image as a base64 string.
+    # Get the background image as a Base64 string
     img_path = "sepsis.jpg"
     if os.path.exists(img_path):
         img_base64 = get_img_with_base64(img_path)
     else:
         img_base64 = "https://via.placeholder.com/1000x400?text=Image+Not+Found"
     
-    # Use CSS to set the entire background of the Home tab.
+    # Set the entire background for the home page with a blur and dark overlay
     st.markdown(f"""
     <style>
     .home-page {{
-         background: url('{img_base64}') no-repeat center center fixed;
-         background-size: cover;
-         padding: 100px 50px;
-         min-height: 600px;
-         border-radius: 10px;
-         position: relative;
-         z-index: 1;
-    }}
-    /* Overlay to darken the background image for text readability */
-    .home-page::before {{
-         content: "";
-         position: absolute;
+         position: fixed;
          top: 0;
          left: 0;
-         right: 0;
-         bottom: 0;
-         background: rgba(0, 0, 0, 0.5);
-         border-radius: 10px;
+         width: 100%;
+         height: 100%;
+         background: url('{img_base64}') no-repeat center center fixed;
+         background-size: cover;
+         filter: blur(8px);
+         z-index: -2;
+    }}
+    .home-overlay {{
+         position: fixed;
+         top: 0;
+         left: 0;
+         width: 100%;
+         height: 100%;
+         background: rgba(0,0,0,0.5);
          z-index: -1;
     }}
-    .home-page-text {{
+    .home-content {{
          position: relative;
-         z-index: 2;
+         z-index: 1;
          text-align: center;
+         padding-top: 20%;
          color: #FFFFFF;
+         font-size: 1.2em;
+         line-height: 1.5em;
     }}
     </style>
-    <div class="home-page">
-         <div class="home-page-text">
-             <h1 style="font-size: 3.5em; margin-bottom: 0;">ICU Sepsis Monitoring System</h1>
-             <h3 style="font-weight: normal; margin-top: 0;">Real-time Monitoring & Insights</h3>
-             <p style="font-size: 1.2em; margin-top: 20px;">
-                Welcome to our advanced monitoring system that leverages a Gradient Boosting model to assess sepsis risk in ICU patients.
-                Navigate through the tabs to input data, view patient trends, and explore model insights.
-             </p>
-         </div>
+    <div class="home-page"></div>
+    <div class="home-overlay"></div>
+    <div class="home-content">
+         <h1 style="font-size: 3.5em; margin-bottom: 0;">ICU Sepsis Monitoring System</h1>
+         <h3 style="font-weight: normal; margin-top: 0;">Real-time Monitoring & Insights</h3>
+         <p style="margin-top: 20px;">
+            Welcome to our advanced monitoring system that leverages a Gradient Boosting model to assess sepsis risk in ICU patients.
+            Navigate through the tabs to input data, view patient trends, and explore model insights.
+         </p>
     </div>
     """, unsafe_allow_html=True)
     
