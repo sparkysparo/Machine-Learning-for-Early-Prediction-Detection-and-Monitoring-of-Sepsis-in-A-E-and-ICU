@@ -1,9 +1,11 @@
+import warnings
+# Suppress FutureWarning for np.bool deprecation
+warnings.filterwarnings("ignore", message="In the future `np.bool` will be defined as the corresponding NumPy scalar.")
+
 import numpy as np
+# Optionally, you can leave the monkey-patch in place if needed for compatibility:
 if not hasattr(np, 'bool'):
     np.bool = bool
-
-import warnings
-warnings.filterwarnings("ignore", message="No data for colormapping provided via 'c'.*")
 
 import streamlit as st
 import pandas as pd
@@ -14,8 +16,14 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 import shap  # Ensure shap is installed (pip install shap)
 from sklearn.preprocessing import StandardScaler
-from streamlit_autorefresh import st_autorefresh
 import random
+
+# Try to import st_autorefresh; if not available, define a dummy function.
+try:
+    from streamlit_autorefresh import st_autorefresh
+except ModuleNotFoundError:
+    st_autorefresh = lambda **kwargs: 0  # dummy function returning 0 refresh count
+    st.warning("streamlit-autorefresh module not found. Auto-refresh simulation will be disabled.")
 
 # ---------------------- Page Configuration ----------------------
 st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
@@ -173,12 +181,11 @@ with tabs[0]:
         
         You can also enable automatic data simulation from the sidebar for testing purposes.
     """)
-    st.image("https://via.placeholder.com/800x300?text=ICU+Sepsis+Monitoring", use_column_width=True)
+    st.image("https://via.placeholder.com/800x300?text=ICU+Sepsis+Monitoring", use_container_width=True)
 
 # ---------------------- Tab 1: Patient Entry ----------------------
 with tabs[1]:
     st.header("Patient Data Entry")
-    # Using a form with clear_on_submit=True to clear fields after submission.
     with st.form(key="patient_entry_form", clear_on_submit=True):
         patient_mode = st.selectbox("Select Mode", ["New Patient", "Monitor Existing Patient"], key="entry_mode")
         
@@ -345,7 +352,7 @@ with tabs[4]:
     st.write("Below is an example of a picture layout using columns.")
     col1, col2 = st.columns(2)
     with col1:
-        st.image("https://via.placeholder.com/300", caption="Sample Image")
+        st.image("https://via.placeholder.com/300", caption="Sample Image", use_column_width=True)
     with col2:
         st.subheader("Description")
         st.write("""
