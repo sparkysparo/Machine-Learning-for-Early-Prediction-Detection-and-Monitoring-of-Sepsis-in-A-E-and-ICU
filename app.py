@@ -29,15 +29,21 @@ except ModuleNotFoundError:
 
 # ---------------------- Utility Functions ----------------------
 def get_base64_of_bin_file(bin_file):
-    """Read a binary file and return its base64 encoded string."""
-    with open(bin_file, "rb") as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+    try:
+        with open(bin_file, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except Exception as e:
+        st.error(f"Error reading image file: {e}")
+        return ""
 
 def get_img_with_base64(file_path):
-    """Return the base64 string formatted for CSS."""
     img_base64 = get_base64_of_bin_file(file_path)
-    return f"data:image/jpeg;base64,{img_base64}"
+    if img_base64:
+        return f"data:image/jpeg;base64,{img_base64}"
+    else:
+        # Fallback URL if local image is not available
+        return "https://via.placeholder.com/1000x400?text=Image+Not+Found"
 
 # ---------------------- Page Configuration ----------------------
 st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
@@ -153,17 +159,20 @@ tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights
 
 # ---------------------- Tab 0: Home ----------------------
 with tabs[0]:
-    # Get the background image as a Base64 string
+    # Get the background image as a base64 string
     img_path = "sepsis.jpg"
-    if os.path.exists(img_path):
-        img_base64 = get_img_with_base64(img_path)
-    else:
-        img_base64 = "https://via.placeholder.com/1000x400?text=Image+Not+Found"
+    img_base64 = get_img_with_base64(img_path)
     
-    # Set the entire background for the home page with a blur and dark overlay
+    # Set full viewport background with overlay and no blur on text container
     st.markdown(f"""
     <style>
-    .home-page {{
+    body {{
+         background: url('{img_base64}') no-repeat center center fixed;
+         background-size: cover;
+         margin: 0;
+         padding: 0;
+    }}
+    .home-background {{
          position: fixed;
          top: 0;
          left: 0;
@@ -180,7 +189,7 @@ with tabs[0]:
          left: 0;
          width: 100%;
          height: 100%;
-         background: rgba(0,0,0,0.5);
+         background: rgba(0, 0, 0, 0.5);
          z-index: -1;
     }}
     .home-content {{
@@ -193,7 +202,7 @@ with tabs[0]:
          line-height: 1.5em;
     }}
     </style>
-    <div class="home-page"></div>
+    <div class="home-background"></div>
     <div class="home-overlay"></div>
     <div class="home-content">
          <h1 style="font-size: 3.5em; margin-bottom: 0;">ICU Sepsis Monitoring System</h1>
