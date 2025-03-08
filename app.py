@@ -181,80 +181,94 @@ else:
 
 # Interactive Bar Chart: Latest Patient Vitals
 if not st.session_state.patient_data_log.empty and selected_patient != "Add New Patient":
-    last_record = filtered_log.iloc[-1]
-    vitals = ["Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"]
-    values = [last_record[v] for v in vitals]
-    df_vitals = pd.DataFrame({"Vital": vitals, "Value": values})
-    fig_bar = px.bar(df_vitals, x="Vital", y="Value", text="Value", title="📊 Latest Patient Vitals")
-    fig_bar.update_traces(textposition="outside")
-    st.plotly_chart(fig_bar)
+    filtered_log = st.session_state.patient_data_log[st.session_state.patient_data_log["Patient_ID"] == selected_patient]
+    if not filtered_log.empty:
+        last_record = filtered_log.iloc[-1]
+        vitals = ["Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"]
+        values = [last_record[v] for v in vitals]
+        df_vitals = pd.DataFrame({"Vital": vitals, "Value": values})
+        
+        try:
+            fig_bar = px.bar(df_vitals, x="Vital", y="Value", text="Value", title="📊 Latest Patient Vitals")
+            fig_bar.update_traces(textposition="outside")
+            st.plotly_chart(fig_bar)
+        except Exception as e:
+            st.error(f"Error rendering bar chart: {e}")
+    else:
+        st.warning(f"No data found for selected patient: {selected_patient}")
 
 # Interactive Line Chart: Sepsis Risk Progression Over Time
 if not st.session_state.patient_data_log.empty and selected_patient != "Add New Patient":
-    df_line = filtered_log.copy()
-    df_line["Timestamp_dt"] = pd.to_datetime(df_line["Timestamp"], format="%H:%M:%S", errors='coerce')
-    
-    # Create the line chart
-    fig_line = px.line(
-        df_line, 
-        x="Timestamp_dt", 
-        y="Sepsis_Risk", 
-        color="Patient_ID", 
-        markers=True,
-        title="📈 Sepsis Risk Progression Over Time",
-        labels={"Timestamp_dt": "Time", "Sepsis_Risk": "Sepsis Risk Probability"},
-        line_shape="spline",  # Smooth line
-        template="plotly_white",  # Clean and modern theme
-    )
-    
-    # Add threshold lines and annotations
-    fig_line.add_hline(
-        y=0.3, 
-        line_dash="dash", 
-        line_color="orange", 
-        annotation_text="Low Risk Threshold", 
-        annotation_position="bottom left"
-    )
-    fig_line.add_hline(
-        y=0.7, 
-        line_dash="dash", 
-        line_color="red", 
-        annotation_text="High Risk Threshold", 
-        annotation_position="top left"
-    )
-    
-    # Add shaded areas for risk zones
-    fig_line.add_hrect(
-        y0=0, y1=0.3, 
-        fillcolor="green", opacity=0.1, 
-        annotation_text="Low Risk Zone", annotation_position="top left"
-    )
-    fig_line.add_hrect(
-        y0=0.3, y1=0.7, 
-        fillcolor="orange", opacity=0.1, 
-        annotation_text="Moderate Risk Zone", annotation_position="top left"
-    )
-    fig_line.add_hrect(
-        y0=0.7, y1=1.0, 
-        fillcolor="red", opacity=0.1, 
-        annotation_text="High Risk Zone", annotation_position="top left"
-    )
-    
-    # Customize hover data
-    fig_line.update_traces(
-        hovertemplate="<b>Time:</b> %{x|%H:%M:%S}<br><b>Risk:</b> %{y:.2f}<extra></extra>"
-    )
-    
-    # Update layout for better readability
-    fig_line.update_layout(
-        xaxis_title="Time",
-        yaxis_title="Sepsis Risk Probability",
-        legend_title="Patient ID",
-        hovermode="x unified",  # Show hover data for all traces at once
-        font=dict(size=12),
-    )
-    
-    st.plotly_chart(fig_line)
+    filtered_log = st.session_state.patient_data_log[st.session_state.patient_data_log["Patient_ID"] == selected_patient]
+    if not filtered_log.empty:
+        df_line = filtered_log.copy()
+        df_line["Timestamp_dt"] = pd.to_datetime(df_line["Timestamp"], format="%H:%M:%S", errors='coerce')
+        
+        try:
+            fig_line = px.line(
+                df_line, 
+                x="Timestamp_dt", 
+                y="Sepsis_Risk", 
+                color="Patient_ID", 
+                markers=True,
+                title="📈 Sepsis Risk Progression Over Time",
+                labels={"Timestamp_dt": "Time", "Sepsis_Risk": "Sepsis Risk Probability"},
+                line_shape="spline",  # Smooth line
+                template="plotly_white",  # Clean and modern theme
+            )
+            
+            # Add threshold lines and annotations
+            fig_line.add_hline(
+                y=0.3, 
+                line_dash="dash", 
+                line_color="orange", 
+                annotation_text="Low Risk Threshold", 
+                annotation_position="bottom left"
+            )
+            fig_line.add_hline(
+                y=0.7, 
+                line_dash="dash", 
+                line_color="red", 
+                annotation_text="High Risk Threshold", 
+                annotation_position="top left"
+            )
+            
+            # Add shaded areas for risk zones
+            fig_line.add_hrect(
+                y0=0, y1=0.3, 
+                fillcolor="green", opacity=0.1, 
+                annotation_text="Low Risk Zone", annotation_position="top left"
+            )
+            fig_line.add_hrect(
+                y0=0.3, y1=0.7, 
+                fillcolor="orange", opacity=0.1, 
+                annotation_text="Moderate Risk Zone", annotation_position="top left"
+            )
+            fig_line.add_hrect(
+                y0=0.7, y1=1.0, 
+                fillcolor="red", opacity=0.1, 
+                annotation_text="High Risk Zone", annotation_position="top left"
+            )
+            
+            # Customize hover data
+            fig_line.update_traces(
+                hovertemplate="<b>Time:</b> %{x|%H:%M:%S}<br><b>Risk:</b> %{y:.2f}<extra></extra>"
+            )
+            
+            # Update layout for better readability
+            fig_line.update_layout(
+                xaxis_title="Time",
+                yaxis_title="Sepsis Risk Probability",
+                legend_title="Patient ID",
+                hovermode="x unified",  # Show hover data for all traces at once
+                font=dict(size=12),
+            )
+            
+            st.plotly_chart(fig_line)
+        except Exception as e:
+            st.error(f"Error rendering line chart: {e}")
+    else:
+        st.warning(f"No data found for selected patient: {selected_patient}")
 
 # Clinical Insights
 st.markdown("---")
