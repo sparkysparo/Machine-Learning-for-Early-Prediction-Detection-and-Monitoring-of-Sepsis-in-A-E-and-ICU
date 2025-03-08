@@ -1,9 +1,10 @@
 import warnings
-# Suppress FutureWarning for np.bool deprecation
+# Suppress specific warnings
 warnings.filterwarnings("ignore", message="In the future `np.bool` will be defined as the corresponding NumPy scalar.")
+warnings.filterwarnings("ignore", message="The `use_column_width` parameter has been deprecated.*")
+warnings.filterwarnings("ignore", message="Serialization of dataframe to Arrow table was unsuccessful.*")
 
 import numpy as np
-# Optionally, you can leave the monkey-patch in place if needed for compatibility:
 if not hasattr(np, 'bool'):
     np.bool = bool
 
@@ -33,7 +34,7 @@ theme_choice = st.sidebar.radio("Select Theme", ["Light", "Dark"])
 if theme_choice == "Dark":
     st.markdown("""
         <style>
-        /* Overall app styling for dark theme */
+        /* Dark theme styling */
         .stApp {
             background-color: #1E1E2F;
             color: #D6D6E0;
@@ -44,7 +45,6 @@ if theme_choice == "Dark":
         }
         [data-testid="stSidebar"] {
             background-color: #2A2A3D;
-            color: #FFFFFF;
         }
         [data-testid="stSidebar"] * {
             color: #FFFFFF;
@@ -75,7 +75,7 @@ if theme_choice == "Dark":
 else:
     st.markdown("""
         <style>
-        /* Overall app styling for light theme */
+        /* Light theme styling */
         .stApp {
             background-color: #F7F7F7;
             color: #333333;
@@ -86,7 +86,6 @@ else:
         }
         [data-testid="stSidebar"] {
             background-color: #FFFFFF;
-            color: #333333;
         }
         [data-testid="stSidebar"] * {
             color: #333333;
@@ -149,8 +148,8 @@ if simulate:
         "Patient_Name": f"Simulated Patient {random.randint(1,50)}",
         "Plasma_glucose": random.randint(80, 400),
         "Blood_Work_R1": random.randint(50, 400),
-        "Blood_Pressure": random.randint(40, 300),
         "Blood_Work_R3": random.randint(10, 250),
+        "Blood_Pressure": random.randint(40, 300),
         "BMI": round(random.uniform(18, 50), 1),
         "Blood_Work_R4": round(random.uniform(0, 7), 1),
         "Patient_age": random.randint(20, 100),
@@ -165,23 +164,26 @@ if simulate:
     st.sidebar.write(f"Simulated data added at {current_time}. Refresh count: {refresh_count}")
 
 # ---------------------- Application Navigation ----------------------
-tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights", "Picture Layout"])
+tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights"])
 
 # ---------------------- Tab 0: Home ----------------------
 with tabs[0]:
-    st.title("Welcome to the ICU Sepsis Monitoring System")
+    st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>ICU Sepsis Monitoring System</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; font-weight: normal; color: #888;'>Real-time Monitoring & Insights</h3>", unsafe_allow_html=True)
+    st.image("https://via.placeholder.com/1000x400?text=ICU+Sepsis+Monitoring", use_container_width=True)
     st.write("""
-        This application is designed to monitor sepsis risk in ICU patients using a Gradient Boosting model.
-        Use the navigation tabs above to:
+        **Welcome!**
         
-        - **Patient Entry:** Input or update patient data.
-        - **Monitoring Dashboard:** View sepsis risk trends and patient logs.
-        - **Model Insights:** Explore model explanations with SHAP.
-        - **Picture Layout:** See an example of a custom layout with images.
+        This application leverages a Gradient Boosting model to monitor sepsis risk in ICU patients in real-time.
         
-        You can also enable automatic data simulation from the sidebar for testing purposes.
+        **Navigation:**
+        - **Patient Entry:** Add new patient data or update existing records.
+        - **Monitoring Dashboard:** View trends and logs of patient data.
+        - **Model Insights:** Understand model predictions through SHAP explanations.
+        
+        Use the sidebar to simulate automatic data submissions and switch between Light and Dark themes.
     """)
-    st.image("https://via.placeholder.com/800x300?text=ICU+Sepsis+Monitoring", use_container_width=True)
+    st.markdown("<hr>", unsafe_allow_html=True)
 
 # ---------------------- Tab 1: Patient Entry ----------------------
 with tabs[1]:
@@ -299,7 +301,10 @@ with tabs[2]:
             )
             st.plotly_chart(fig_trend, use_container_width=True)
         st.subheader("Patient Data Log")
-        st.dataframe(st.session_state.patient_data_log)
+        try:
+            st.dataframe(st.session_state.patient_data_log)
+        except Exception as e:
+            st.dataframe(st.session_state.patient_data_log.astype(str))
 
 # ---------------------- Tab 3: Model Insights (with SHAP) ----------------------
 with tabs[3]:
@@ -345,18 +350,3 @@ with tabs[3]:
         - Features at the top of the plot have the highest impact on the model output.
         - This visualization helps in understanding how each vital sign contributes to the sepsis risk prediction.
         """)
-
-# ---------------------- Tab 4: Picture Layout ----------------------
-with tabs[4]:
-    st.header("Picture Layout Example")
-    st.write("Below is an example of a picture layout using columns.")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.image("https://via.placeholder.com/300", caption="Sample Image", use_column_width=True)
-    with col2:
-        st.subheader("Description")
-        st.write("""
-            This layout displays an image on one side and accompanying text on the other.
-            Replace the placeholder image URL with your own image path or URL.
-        """)
-    st.write("Customize this layout as needed for your application.")
