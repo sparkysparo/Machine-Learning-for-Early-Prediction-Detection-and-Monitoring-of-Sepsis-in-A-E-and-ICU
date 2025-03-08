@@ -16,7 +16,6 @@ from sklearn.preprocessing import StandardScaler
 st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
 
 # ---------------------- Theme Toggle CSS ----------------------
-# You can customize these CSS settings to suit your preferences.
 theme_choice = st.sidebar.radio("Select Theme", ["Light", "Dark"])
 if theme_choice == "Dark":
     st.markdown("""
@@ -151,7 +150,7 @@ with tab1:
                     st.session_state.patient_data_log["Patient_ID"] == selected_patient_id, "Patient_Name"
                 ].iloc[-1]
                 data_dict["Patient_Name"] = existing_name
-        
+
         input_df = pd.DataFrame([[
             data_dict["Plasma_glucose"],
             data_dict["Blood_Work_R1"],
@@ -218,21 +217,21 @@ with tab3:
     st.header("Model Insights")
     st.write("Generating SHAP feature importance for: **Gradient Boosting Model**")
     
-    # Use all seven features to match scaler's fit
+    # IMPORTANT: Use all seven features (must match the scaler's training)
     if st.session_state.patient_data_log.empty:
         st.info("No patient data available for SHAP analysis. Using a dummy sample.")
         X_train = pd.DataFrame({
             "Plasma_glucose": np.linspace(100, 150, 10),
             "Blood_Work_R1": np.linspace(120, 160, 10),
-            "Blood_Work_Pressure": np.linspace(80, 120, 10),
             "Blood_Work_R3": np.linspace(30, 50, 10),
+            "Blood_Pressure": np.linspace(80, 120, 10),
             "BMI": np.linspace(25, 30, 10),
             "Blood_Work_R4": np.linspace(0.5, 1.0, 10),
             "Patient_age": np.linspace(40, 60, 10)
         })
     else:
         X_train = st.session_state.patient_data_log[[
-            "Plasma_glucose", "Blood_Work_R1", "Blood_Work_Pressure", 
+            "Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", 
             "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"
         ]]
     X_train_scaled = scaler.transform(X_train)
@@ -245,6 +244,7 @@ with tab3:
     try:
         # Disable the colorbar to avoid extra graph elements
         shap.summary_plot(shap_values, X_train, show=False, color_bar=False)
+        # Optionally remove any residual colorbar images from the axes
         for ax in fig.axes:
             if hasattr(ax, 'images') and len(ax.images) > 0:
                 ax.images = []
