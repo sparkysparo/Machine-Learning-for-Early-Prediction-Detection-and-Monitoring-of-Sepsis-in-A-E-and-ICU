@@ -20,6 +20,32 @@ except Exception as e:
     st.stop()
 
 # -------------------------------
+# Prediction Function (Adapted from FastAPI Code)
+# -------------------------------
+def predict_sepsis_risk(df):
+    """
+    Takes a DataFrame with numeric vital sign data,
+    scales the data, and returns a dictionary with the prediction result.
+    """
+    scaled_df = scaler.transform(df)
+    prediction = gb_model.predict_proba(scaled_df)
+    # Use the predicted probability for sepsis (class 1)
+    risk_prob = prediction[0][1]
+    
+    # Determine label based on a threshold
+    if risk_prob >= 0.7:
+        label = "Patient has sepsis"
+    elif risk_prob >= 0.3:
+        label = "Patient might have sepsis"
+    else:
+        label = "Patient does not have sepsis"
+    
+    return {
+        "prediction": label,
+        "probability": f"{risk_prob:.2f}"
+    }
+
+# -------------------------------
 # App Title & Introduction
 # -------------------------------
 st.title("ICU Sepsis Monitoring System")
@@ -77,10 +103,13 @@ if submit_btn:
         columns=["Timestamp", "Patient_ID", "Patient_Name", "Plasma_glucose", "Blood_Work_R1",
                  "Blood_Pressure", "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"]
     )
+    
+    # Use the predict_sepsis_risk function on the numeric data
+    scaled_input = patient_data.drop(columns=["Timestamp", "Patient_ID", "Patient_Name"])
+    prediction_output = predict_sepsis_risk(scaled_input)
+    sepsis_risk = float(prediction_output["probability"])
 
-    # Normalize input: drop non-numeric columns (Timestamp, Patient_ID, Patient_Name)
-    scaled_data = scaler.transform(patient_data.drop(columns=["Timestamp", "Patient_ID", "Patient_Name"]))
-    sepsis_risk = gb_model.predict_proba(scaled_data)[0][1]
+    # Append prediction to the DataFrame
     patient_data["Sepsis_Risk"] = sepsis_risk
 
     # Update the patient data log: if Patient ID exists, update; otherwise, append new entry.
@@ -96,12 +125,8 @@ if submit_btn:
 
     # Display sepsis risk result with clinical alert
     st.subheader("Sepsis Risk Prediction")
-    if sepsis_risk >= 0.7:
-        st.error(f"High Sepsis Risk: {sepsis_risk:.2f}")
-    elif sepsis_risk >= 0.3:
-        st.warning(f"Moderate Sepsis Risk: {sepsis_risk:.2f}")
-    else:
-        st.success(f"Low Sepsis Risk: {sepsis_risk:.2f}")
+    st.write(f"Prediction: **{prediction_output['prediction']}**")
+    st.write(f"Probability: **{prediction_output['probability']}**")
 
 # -------------------------------
 # Main Dashboard: Data Log & Visualizations
