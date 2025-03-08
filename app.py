@@ -37,7 +37,7 @@ st.sidebar.header("🩺 Patient Data Input")
 st.sidebar.write("Enter patient vitals for real-time sepsis risk prediction.")
 
 # Optional: Auto-refresh the dashboard every 60 seconds
-st.experimental_autorefresh(interval=60000, limit=100, key="data_refresh")
+#st.experimental_autorefresh(interval=60000, limit=100, key="data_refresh")
 
 # -------------------------------
 # Session State: Initialize Data Log
