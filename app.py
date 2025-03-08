@@ -149,8 +149,6 @@ if simulate:
         "Plasma_glucose": random.randint(80, 400),
         "Blood_Work_R1": random.randint(50, 400),
         "Blood_Work_R3": random.randint(10, 250),
-        "Blood_Work_R1": random.randint(50, 400),
-        "Blood_Work_R3": random.randint(10, 250),
         "Blood_Pressure": random.randint(40, 300),
         "BMI": round(random.uniform(18, 50), 1),
         "Blood_Work_R4": round(random.uniform(0, 7), 1),
@@ -170,26 +168,32 @@ tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights
 
 # ---------------------- Tab 0: Home ----------------------
 with tabs[0]:
-    # Use a div with background image
+    # A div with a background image (sepsis.jpg) covering the container
     st.markdown("""
-    <div style="
+    <style>
+    .home-background {
          background-image: url('sepsis.jpg');
          background-size: cover;
          background-position: center;
+         min-height: 400px;
          padding: 100px 50px;
          border-radius: 10px;
          text-align: center;
-         color: white;">
+         color: white;
+         box-shadow: 0px 4px 8px rgba(0,0,0,0.3);
+    }
+    </style>
+    <div class="home-background">
          <h1 style="font-size: 3.5em; margin-bottom: 0;">ICU Sepsis Monitoring System</h1>
-         <h3 style="font-weight: normal; margin-top: 0;">Real-time Monitoring & Insights</h3>
+         <h3 style="font-weight: normal; margin-top: 0; color: #f0f0f0;">Real-time Monitoring & Insights</h3>
+         <p style="font-size: 1.2em; margin-top: 20px;">
+            Welcome to our advanced monitoring system that leverages a Gradient Boosting model to assess sepsis risk in ICU patients.
+            Navigate through the tabs to input data, view patient trends, and explore model insights.
+         </p>
     </div>
     """, unsafe_allow_html=True)
     
     st.write("""
-        **Welcome!**
-        
-        This application leverages a Gradient Boosting model to monitor sepsis risk in ICU patients in real-time.
-        
         **Navigation:**
         - **Patient Entry:** Add new patient data or update existing records.
         - **Monitoring Dashboard:** View trends and logs of patient data.
