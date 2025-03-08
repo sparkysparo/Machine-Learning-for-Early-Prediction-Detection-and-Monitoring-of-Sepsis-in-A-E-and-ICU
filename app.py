@@ -2,6 +2,9 @@ import numpy as np
 if not hasattr(np, 'bool'):
     np.bool = bool
 
+import warnings
+warnings.filterwarnings("ignore", message="No data for colormapping provided via 'c'.*")
+
 import streamlit as st
 import pandas as pd
 import joblib
@@ -9,7 +12,7 @@ import time
 import os
 import matplotlib.pyplot as plt
 import plotly.express as px
-import shap  # Ensure shap is installed: pip install shap
+import shap  # Ensure shap is installed (pip install shap)
 from sklearn.preprocessing import StandardScaler
 from streamlit_autorefresh import st_autorefresh
 import random
@@ -130,7 +133,6 @@ def save_data(df):
 # ---------------------- Simulation for Automatic Data Submission ----------------------
 simulate = st.sidebar.checkbox("Simulate Automatic Data Submission", value=False)
 if simulate:
-    # Auto refresh every 5 seconds (5000 ms), with a limit to avoid infinite refresh
     refresh_count = st_autorefresh(interval=5000, limit=100, key="data_simulation")
     current_time = time.strftime("%H:%M:%S")
     simulated_data = {
@@ -154,36 +156,56 @@ if simulate:
     save_data(st.session_state.patient_data_log)
     st.sidebar.write(f"Simulated data added at {current_time}. Refresh count: {refresh_count}")
 
-# ---------------------- Application Tabs ----------------------
-tab1, tab2, tab3 = st.tabs(["Patient Entry", "Monitoring Dashboard", "Model Insights"])
+# ---------------------- Application Navigation ----------------------
+tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights", "Picture Layout"])
+
+# ---------------------- Tab 0: Home ----------------------
+with tabs[0]:
+    st.title("Welcome to the ICU Sepsis Monitoring System")
+    st.write("""
+        This application is designed to monitor sepsis risk in ICU patients using a Gradient Boosting model.
+        Use the navigation tabs above to:
+        
+        - **Patient Entry:** Input or update patient data.
+        - **Monitoring Dashboard:** View sepsis risk trends and patient logs.
+        - **Model Insights:** Explore model explanations with SHAP.
+        - **Picture Layout:** See an example of a custom layout with images.
+        
+        You can also enable automatic data simulation from the sidebar for testing purposes.
+    """)
+    st.image("https://via.placeholder.com/800x300?text=ICU+Sepsis+Monitoring", use_column_width=True)
 
 # ---------------------- Tab 1: Patient Entry ----------------------
-with tab1:
+with tabs[1]:
     st.header("Patient Data Entry")
-    patient_mode = st.selectbox("Select Mode", ["New Patient", "Monitor Existing Patient"])
-    
-    if patient_mode == "New Patient":
-        patient_id_input = st.text_input("Enter Patient ID", help="Unique identifier for the patient")
-        patient_name_input = st.text_input("Enter Patient Name", help="Full name of the patient")
-    else:
-        if not st.session_state.patient_data_log.empty:
-            existing_patients = st.session_state.patient_data_log[["Patient_ID", "Patient_Name"]].drop_duplicates()
-            options = [f"{row['Patient_ID']} - {row['Patient_Name']}" for index, row in existing_patients.iterrows()]
-            selected_patient_option = st.selectbox("Select Patient", options)
-            selected_patient_id = selected_patient_option.split(" - ")[0]
+    # Using a form with clear_on_submit=True to clear fields after submission.
+    with st.form(key="patient_entry_form", clear_on_submit=True):
+        patient_mode = st.selectbox("Select Mode", ["New Patient", "Monitor Existing Patient"], key="entry_mode")
+        
+        if patient_mode == "New Patient":
+            patient_id_input = st.text_input("Enter Patient ID", help="Unique identifier for the patient")
+            patient_name_input = st.text_input("Enter Patient Name", help="Full name of the patient")
         else:
-            st.info("No existing patient data available. Switch to 'New Patient' mode.")
+            if not st.session_state.patient_data_log.empty:
+                existing_patients = st.session_state.patient_data_log[["Patient_ID", "Patient_Name"]].drop_duplicates()
+                options = [f"{row['Patient_ID']} - {row['Patient_Name']}" for index, row in existing_patients.iterrows()]
+                selected_patient_option = st.selectbox("Select Patient", options)
+                selected_patient_id = selected_patient_option.split(" - ")[0]
+            else:
+                st.info("No existing patient data available. Switch to 'New Patient' mode.")
+        
+        st.subheader("Enter Vital Signs")
+        PRG = st.slider("PRG (Plasma Glucose)", 0, 600, 100, help="Glucose level in plasma (mg/dL)")
+        PL = st.slider("PL (Blood Work R1)", 50, 500, 120, help="Result from blood work test R1")
+        PR = st.slider("PR (Blood Pressure)", 40, 300, 80, help="Blood pressure reading (mm Hg)")
+        SK = st.slider("SK (Blood Work R3)", 0, 300, 30, help="Result from blood work test R3")
+        M11 = st.slider("M11 (BMI)", 10.0, 70.0, 25.0, help="Body Mass Index (kg/m²)")
+        BD2 = st.slider("BD2 (Blood Work R4)", 0.0, 7.0, 0.5, help="Result from blood work test R4")
+        Age = st.slider("Age", 18, 110, 40, help="Patient age in years (max capped at 110)")
+        
+        submit_button = st.form_submit_button("Submit Data")
     
-    st.subheader("Enter Vital Signs")
-    PRG = st.slider("PRG (Plasma Glucose)", 0, 600, 100, help="Glucose level in plasma (mg/dL)")
-    PL = st.slider("PL (Blood Work R1)", 50, 500, 120, help="Result from blood work test R1")
-    PR = st.slider("PR (Blood Pressure)", 40, 300, 80, help="Blood pressure reading (mm Hg)")
-    SK = st.slider("SK (Blood Work R3)", 0, 300, 30, help="Result from blood work test R3")
-    M11 = st.slider("M11 (BMI)", 10.0, 70.0, 25.0, help="Body Mass Index (kg/m²)")
-    BD2 = st.slider("BD2 (Blood Work R4)", 0.0, 7.0, 0.5, help="Result from blood work test R4")
-    Age = st.slider("Age", 18, 110, 40, help="Patient age in years (max capped at 110)")
-    
-    if st.button("Submit Data"):
+    if submit_button:
         current_time = time.strftime("%H:%M:%S")
         data_dict = {
             "Timestamp": current_time,
@@ -210,7 +232,7 @@ with tab1:
                     st.session_state.patient_data_log["Patient_ID"] == selected_patient_id, "Patient_Name"
                 ].iloc[-1]
                 data_dict["Patient_Name"] = existing_name
-        
+
         input_df = pd.DataFrame([[
             data_dict["Plasma_glucose"],
             data_dict["Blood_Work_R1"],
@@ -251,12 +273,12 @@ with tab1:
         st.plotly_chart(fig_vitals, use_container_width=True)
 
 # ---------------------- Tab 2: Monitoring Dashboard ----------------------
-with tab2:
+with tabs[2]:
     st.header("Monitoring Dashboard")
     if st.session_state.patient_data_log.empty:
         st.info("No patient data available yet.")
     else:
-        show_risk_line = st.checkbox("Show Sepsis Risk Trend", value=True)
+        show_risk_line = st.checkbox("Show Sepsis Risk Trend", value=True, key="toggle_trend")
         if show_risk_line:
             st.subheader("Sepsis Risk Trend Over Time")
             df = st.session_state.patient_data_log.copy()
@@ -273,11 +295,10 @@ with tab2:
         st.dataframe(st.session_state.patient_data_log)
 
 # ---------------------- Tab 3: Model Insights (with SHAP) ----------------------
-with tab3:
+with tabs[3]:
     st.header("Model Insights")
     st.write("Generating SHAP feature importance for: **Gradient Boosting Model**")
     
-    # Use all seven features as the scaler was trained on
     if st.session_state.patient_data_log.empty:
         st.info("No patient data available for SHAP analysis. Using a dummy sample.")
         X_train = pd.DataFrame({
@@ -303,7 +324,6 @@ with tab3:
     fig = plt.figure(figsize=(10, 6))
     try:
         shap.summary_plot(shap_values, X_train, show=False, color_bar=False)
-        # Remove any residual images from the figure's axes (optional)
         for ax in fig.axes:
             if hasattr(ax, 'images') and len(ax.images) > 0:
                 ax.images = []
@@ -318,3 +338,18 @@ with tab3:
         - Features at the top of the plot have the highest impact on the model output.
         - This visualization helps in understanding how each vital sign contributes to the sepsis risk prediction.
         """)
+
+# ---------------------- Tab 4: Picture Layout ----------------------
+with tabs[4]:
+    st.header("Picture Layout Example")
+    st.write("Below is an example of a picture layout using columns.")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.image("https://via.placeholder.com/300", caption="Sample Image")
+    with col2:
+        st.subheader("Description")
+        st.write("""
+            This layout displays an image on one side and accompanying text on the other.
+            Replace the placeholder image URL with your own image path or URL.
+        """)
+    st.write("Customize this layout as needed for your application.")
