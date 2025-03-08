@@ -28,22 +28,14 @@ except ModuleNotFoundError:
     st.warning("streamlit-autorefresh module not found. Auto-refresh simulation will be disabled.")
 
 # ---------------------- Utility Functions ----------------------
-def get_base64_of_bin_file(bin_file):
+def get_base64_of_file(file_path):
     try:
-        with open(bin_file, "rb") as f:
+        with open(file_path, "rb") as f:
             data = f.read()
         return base64.b64encode(data).decode()
     except Exception as e:
-        st.error(f"Error reading image file: {e}")
+        st.error(f"Error reading file {file_path}: {e}")
         return ""
-
-def get_img_with_base64(file_path):
-    img_base64 = get_base64_of_bin_file(file_path)
-    if img_base64:
-        return f"data:image/jpeg;base64,{img_base64}"
-    else:
-        # Fallback URL if local image is not available
-        return "https://via.placeholder.com/1000x400?text=Image+Not+Found"
 
 # ---------------------- Page Configuration ----------------------
 st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
@@ -67,6 +59,11 @@ else:
 
 st.markdown(f"""
     <style>
+    html, body {{
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }}
     .stApp {{
         background-color: {app_bg};
         color: {text_color};
@@ -105,6 +102,45 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
+# ---------------------- Background for Home Tab ----------------------
+# Get the background image in Base64.
+img_path = "sepsis.jpg"
+bg_base64 = get_base64_of_file(img_path)
+if bg_base64:
+    bg_url = f"data:image/jpeg;base64,{bg_base64}"
+else:
+    bg_url = "https://via.placeholder.com/1000x400?text=Image+Not+Found"
+
+# Apply full-page background with a dark overlay and no blur on the content.
+st.markdown(f"""
+    <style>
+    /* Set full viewport background */
+    body {{
+        background: url('{bg_url}') no-repeat center center fixed;
+        background-size: cover;
+    }}
+    /* Overlay for darkening the background */
+    .home-overlay {{
+         position: fixed;
+         top: 0;
+         left: 0;
+         right: 0;
+         bottom: 0;
+         background: rgba(0, 0, 0, 0.5);
+         z-index: -1;
+    }}
+    /* Home page content container */
+    .home-content {{
+         position: relative;
+         z-index: 1;
+         text-align: center;
+         padding-top: 15vh;
+         color: #FFFFFF;
+    }}
+    </style>
+    <div class="home-overlay"></div>
+    """, unsafe_allow_html=True)
+
 # ---------------------- Caching for Model & Scaler ----------------------
 @st.cache_resource
 def load_model_and_scaler():
@@ -122,7 +158,7 @@ if "patient_data_log" not in st.session_state:
     else:
         st.session_state.patient_data_log = pd.DataFrame(columns=[
             "Timestamp", "Patient_ID", "Patient_Name", "Plasma_glucose", "Blood_Work_R1",
-            "Blood_Pressure", "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age", "Sepsis_Risk"
+            "Blood_Work_R3", "Blood_Pressure", "BMI", "Blood_Work_R4", "Patient_age", "Sepsis_Risk"
         ])
 
 def save_data(df):
@@ -159,55 +195,12 @@ tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights
 
 # ---------------------- Tab 0: Home ----------------------
 with tabs[0]:
-    # Get the background image as a base64 string
-    img_path = "sepsis.jpg"
-    img_base64 = get_img_with_base64(img_path)
-    
-    # Set full viewport background with overlay and no blur on text container
-    st.markdown(f"""
-    <style>
-    body {{
-         background: url('{img_base64}') no-repeat center center fixed;
-         background-size: cover;
-         margin: 0;
-         padding: 0;
-    }}
-    .home-background {{
-         position: fixed;
-         top: 0;
-         left: 0;
-         width: 100%;
-         height: 100%;
-         background: url('{img_base64}') no-repeat center center fixed;
-         background-size: cover;
-         filter: blur(8px);
-         z-index: -2;
-    }}
-    .home-overlay {{
-         position: fixed;
-         top: 0;
-         left: 0;
-         width: 100%;
-         height: 100%;
-         background: rgba(0, 0, 0, 0.5);
-         z-index: -1;
-    }}
-    .home-content {{
-         position: relative;
-         z-index: 1;
-         text-align: center;
-         padding-top: 20%;
-         color: #FFFFFF;
-         font-size: 1.2em;
-         line-height: 1.5em;
-    }}
-    </style>
-    <div class="home-background"></div>
-    <div class="home-overlay"></div>
+    # Place the content inside a container so the background remains fixed.
+    st.markdown("""
     <div class="home-content">
          <h1 style="font-size: 3.5em; margin-bottom: 0;">ICU Sepsis Monitoring System</h1>
          <h3 style="font-weight: normal; margin-top: 0;">Real-time Monitoring & Insights</h3>
-         <p style="margin-top: 20px;">
+         <p style="font-size: 1.2em; margin-top: 20px;">
             Welcome to our advanced monitoring system that leverages a Gradient Boosting model to assess sepsis risk in ICU patients.
             Navigate through the tabs to input data, view patient trends, and explore model insights.
          </p>
