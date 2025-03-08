@@ -149,6 +149,8 @@ if simulate:
         "Plasma_glucose": random.randint(80, 400),
         "Blood_Work_R1": random.randint(50, 400),
         "Blood_Work_R3": random.randint(10, 250),
+        "Blood_Work_R1": random.randint(50, 400),
+        "Blood_Work_R3": random.randint(10, 250),
         "Blood_Pressure": random.randint(40, 300),
         "BMI": round(random.uniform(18, 50), 1),
         "Blood_Work_R4": round(random.uniform(0, 7), 1),
@@ -168,11 +170,21 @@ tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights
 
 # ---------------------- Tab 0: Home ----------------------
 with tabs[0]:
-    st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>ICU Sepsis Monitoring System</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; font-weight: normal; color: #888;'>Real-time Monitoring & Insights</h3>", unsafe_allow_html=True)
-    # Use your local sepsis.jpg file here
-    st.image("sepsis.jpg", use_container_width=True)
-
+    # Use a div with background image
+    st.markdown("""
+    <div style="
+         background-image: url('sepsis.jpg');
+         background-size: cover;
+         background-position: center;
+         padding: 100px 50px;
+         border-radius: 10px;
+         text-align: center;
+         color: white;">
+         <h1 style="font-size: 3.5em; margin-bottom: 0;">ICU Sepsis Monitoring System</h1>
+         <h3 style="font-weight: normal; margin-top: 0;">Real-time Monitoring & Insights</h3>
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.write("""
         **Welcome!**
         
