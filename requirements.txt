@@ -10,6 +10,4 @@ imblearn==0.10.1
 xgboost==1.7.3
 statistics
 joblib==1.2.0
-warnings
-os
 streamlit==1.10.0
