@@ -170,7 +170,9 @@ tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights
 with tabs[0]:
     st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>ICU Sepsis Monitoring System</h1>", unsafe_allow_html=True)
     st.markdown("<h3 style='text-align: center; font-weight: normal; color: #888;'>Real-time Monitoring & Insights</h3>", unsafe_allow_html=True)
-    st.image("https://via.placeholder.com/1000x400?text=ICU+Sepsis+Monitoring", use_container_width=True)
+    # Use your local sepsis.jpg file here
+    st.image("sepsis.jpg", use_container_width=True)
+
     st.write("""
         **Welcome!**
         
