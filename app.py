@@ -20,51 +20,97 @@ theme_choice = st.sidebar.radio("Select Theme", ["Light", "Dark"])
 if theme_choice == "Dark":
     st.markdown("""
         <style>
-        /* Apply background and text color for the entire app */
-        body, .stApp {
-            background-color: #2C2C2C;
-            color: #F0F0F0;
+        /* Overall background and text */
+        .stApp {
+            background-color: #1E1E2F;
+            color: #D6D6E0;
+            font-family: 'Segoe UI', sans-serif;
         }
-        /* Header, paragraphs, and other text elements */
-        h1, h2, h3, h4, h5, h6, p, label, .stMetric {
-            color: #F0F0F0;
+        /* Headings and text */
+        h1, h2, h3, h4, h5, h6, p, label {
+            color: #FFFFFF;
         }
         /* Sidebar styling */
-        .css-1d391kg, .css-1d391kg .block-container {
-            background-color: #1F1F1F;
-            color: #F0F0F0;
+        [data-testid="stSidebar"] {
+            background-color: #2A2A3D;
+            color: #FFFFFF;
         }
-        /* Container styling for blocks */
+        /* Sidebar text */
+        [data-testid="stSidebar"] * {
+            color: #FFFFFF;
+        }
+        /* Block container (main content) */
         .block-container {
-            background-color: #2C2C2C;
+            background-color: #1E1E2F;
         }
-        /* Button styling */
+        /* Buttons */
         .stButton>button {
-            background-color: #444444;
-            color: #F0F0F0;
+            background-color: #3C3C55;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 4px;
+            padding: 0.5rem 1rem;
+        }
+        .stButton>button:hover {
+            background-color: #57578A;
+        }
+        /* Metrics */
+        .stMetric {
+            background-color: #2A2A3D;
+            border: 1px solid #3C3C55;
+            border-radius: 8px;
+        }
+        /* Plotly charts and Matplotlib figures inherit background */
+        .main .element-container {
+            background-color: #1E1E2F;
         }
         </style>
         """, unsafe_allow_html=True)
 else:
     st.markdown("""
         <style>
-        body, .stApp {
+        /* Overall background and text */
+        .stApp {
+            background-color: #F7F7F7;
+            color: #333333;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        /* Headings and text */
+        h1, h2, h3, h4, h5, h6, p, label {
+            color: #333333;
+        }
+        /* Sidebar styling */
+        [data-testid="stSidebar"] {
             background-color: #FFFFFF;
             color: #333333;
         }
-        h1, h2, h3, h4, h5, h6, p, label, .stMetric {
+        [data-testid="stSidebar"] * {
             color: #333333;
         }
-        .css-1d391kg, .css-1d391kg .block-container {
-            background-color: #f0f2f6;
-            color: #333333;
-        }
+        /* Block container (main content) */
         .block-container {
             background-color: #FFFFFF;
         }
+        /* Buttons */
         .stButton>button {
-            background-color: #e0e0e0;
+            background-color: #E0E0E0;
             color: #333333;
+            border: none;
+            border-radius: 4px;
+            padding: 0.5rem 1rem;
+        }
+        .stButton>button:hover {
+            background-color: #CCCCCC;
+        }
+        /* Metrics */
+        .stMetric {
+            background-color: #F0F0F0;
+            border: 1px solid #CCCCCC;
+            border-radius: 8px;
+        }
+        /* Plotly charts and Matplotlib figures */
+        .main .element-container {
+            background-color: #FFFFFF;
         }
         </style>
         """, unsafe_allow_html=True)
@@ -217,7 +263,7 @@ with tab3:
     st.header("Model Insights")
     st.write("Generating SHAP feature importance for: **Gradient Boosting Model**")
     
-    # IMPORTANT: Use all seven features (must match the scaler's training)
+    # Use all seven features to match the scaler
     if st.session_state.patient_data_log.empty:
         st.info("No patient data available for SHAP analysis. Using a dummy sample.")
         X_train = pd.DataFrame({
@@ -244,7 +290,6 @@ with tab3:
     try:
         # Disable the colorbar to avoid extra graph elements
         shap.summary_plot(shap_values, X_train, show=False, color_bar=False)
-        # Optionally remove any residual colorbar images from the axes
         for ax in fig.axes:
             if hasattr(ax, 'images') and len(ax.images) > 0:
                 ax.images = []
