@@ -9,8 +9,10 @@ import time
 import os
 import matplotlib.pyplot as plt
 import plotly.express as px
-import shap  # Ensure shap is installed (pip install shap)
+import shap  # Ensure shap is installed: pip install shap
 from sklearn.preprocessing import StandardScaler
+from streamlit_autorefresh import st_autorefresh
+import random
 
 # ---------------------- Page Configuration ----------------------
 st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
@@ -20,30 +22,25 @@ theme_choice = st.sidebar.radio("Select Theme", ["Light", "Dark"])
 if theme_choice == "Dark":
     st.markdown("""
         <style>
-        /* Overall background and text */
+        /* Overall app styling for dark theme */
         .stApp {
             background-color: #1E1E2F;
             color: #D6D6E0;
             font-family: 'Segoe UI', sans-serif;
         }
-        /* Headings and text */
         h1, h2, h3, h4, h5, h6, p, label {
             color: #FFFFFF;
         }
-        /* Sidebar styling */
         [data-testid="stSidebar"] {
             background-color: #2A2A3D;
             color: #FFFFFF;
         }
-        /* Sidebar text */
         [data-testid="stSidebar"] * {
             color: #FFFFFF;
         }
-        /* Block container (main content) */
         .block-container {
             background-color: #1E1E2F;
         }
-        /* Buttons */
         .stButton>button {
             background-color: #3C3C55;
             color: #FFFFFF;
@@ -54,13 +51,11 @@ if theme_choice == "Dark":
         .stButton>button:hover {
             background-color: #57578A;
         }
-        /* Metrics */
         .stMetric {
             background-color: #2A2A3D;
             border: 1px solid #3C3C55;
             border-radius: 8px;
         }
-        /* Plotly charts and Matplotlib figures inherit background */
         .main .element-container {
             background-color: #1E1E2F;
         }
@@ -69,17 +64,15 @@ if theme_choice == "Dark":
 else:
     st.markdown("""
         <style>
-        /* Overall background and text */
+        /* Overall app styling for light theme */
         .stApp {
             background-color: #F7F7F7;
             color: #333333;
             font-family: 'Segoe UI', sans-serif;
         }
-        /* Headings and text */
         h1, h2, h3, h4, h5, h6, p, label {
             color: #333333;
         }
-        /* Sidebar styling */
         [data-testid="stSidebar"] {
             background-color: #FFFFFF;
             color: #333333;
@@ -87,11 +80,9 @@ else:
         [data-testid="stSidebar"] * {
             color: #333333;
         }
-        /* Block container (main content) */
         .block-container {
             background-color: #FFFFFF;
         }
-        /* Buttons */
         .stButton>button {
             background-color: #E0E0E0;
             color: #333333;
@@ -102,13 +93,11 @@ else:
         .stButton>button:hover {
             background-color: #CCCCCC;
         }
-        /* Metrics */
         .stMetric {
             background-color: #F0F0F0;
             border: 1px solid #CCCCCC;
             border-radius: 8px;
         }
-        /* Plotly charts and Matplotlib figures */
         .main .element-container {
             background-color: #FFFFFF;
         }
@@ -138,14 +127,39 @@ if "patient_data_log" not in st.session_state:
 def save_data(df):
     df.to_csv(DATA_FILE, index=False)
 
+# ---------------------- Simulation for Automatic Data Submission ----------------------
+simulate = st.sidebar.checkbox("Simulate Automatic Data Submission", value=False)
+if simulate:
+    # Auto refresh every 5 seconds (5000 ms), with a limit to avoid infinite refresh
+    refresh_count = st_autorefresh(interval=5000, limit=100, key="data_simulation")
+    current_time = time.strftime("%H:%M:%S")
+    simulated_data = {
+        "Timestamp": current_time,
+        "Patient_ID": f"Sim-{random.randint(100,999)}",
+        "Patient_Name": f"Simulated Patient {random.randint(1,50)}",
+        "Plasma_glucose": random.randint(80, 400),
+        "Blood_Work_R1": random.randint(50, 400),
+        "Blood_Pressure": random.randint(40, 300),
+        "Blood_Work_R3": random.randint(10, 250),
+        "BMI": round(random.uniform(18, 50), 1),
+        "Blood_Work_R4": round(random.uniform(0, 7), 1),
+        "Patient_age": random.randint(20, 100),
+        "Sepsis_Risk": round(random.uniform(0, 1), 2)
+    }
+    new_entry = pd.DataFrame([simulated_data])
+    st.session_state.patient_data_log = pd.concat(
+        [st.session_state.patient_data_log, new_entry],
+        ignore_index=True
+    )
+    save_data(st.session_state.patient_data_log)
+    st.sidebar.write(f"Simulated data added at {current_time}. Refresh count: {refresh_count}")
+
 # ---------------------- Application Tabs ----------------------
 tab1, tab2, tab3 = st.tabs(["Patient Entry", "Monitoring Dashboard", "Model Insights"])
 
 # ---------------------- Tab 1: Patient Entry ----------------------
 with tab1:
     st.header("Patient Data Entry")
-    
-    # Patient mode: New entry or updating an existing patient
     patient_mode = st.selectbox("Select Mode", ["New Patient", "Monitor Existing Patient"])
     
     if patient_mode == "New Patient":
@@ -196,7 +210,7 @@ with tab1:
                     st.session_state.patient_data_log["Patient_ID"] == selected_patient_id, "Patient_Name"
                 ].iloc[-1]
                 data_dict["Patient_Name"] = existing_name
-
+        
         input_df = pd.DataFrame([[
             data_dict["Plasma_glucose"],
             data_dict["Blood_Work_R1"],
@@ -263,7 +277,7 @@ with tab3:
     st.header("Model Insights")
     st.write("Generating SHAP feature importance for: **Gradient Boosting Model**")
     
-    # Use all seven features to match the scaler
+    # Use all seven features as the scaler was trained on
     if st.session_state.patient_data_log.empty:
         st.info("No patient data available for SHAP analysis. Using a dummy sample.")
         X_train = pd.DataFrame({
@@ -288,8 +302,8 @@ with tab3:
     st.write("### SHAP Summary Plot")
     fig = plt.figure(figsize=(10, 6))
     try:
-        # Disable the colorbar to avoid extra graph elements
         shap.summary_plot(shap_values, X_train, show=False, color_bar=False)
+        # Remove any residual images from the figure's axes (optional)
         for ax in fig.axes:
             if hasattr(ax, 'images') and len(ax.images) > 0:
                 ax.images = []
