@@ -158,7 +158,7 @@ with tabs[0]:
     else:
         img_base64 = "https://via.placeholder.com/1000x400?text=Image+Not+Found"
     
-    # Use CSS to set the entire background of the Home tab.
+    # Use CSS to set the entire background of the Home tab with a dark overlay.
     st.markdown(f"""
     <style>
     .home-page {{
@@ -191,9 +191,9 @@ with tabs[0]:
     </style>
     <div class="home-page">
          <div class="home-page-text">
-             <h1 style="font-size: 3.5em; margin-bottom: 0;">ICU Sepsis Monitoring System</h1>
-             <h3 style="font-weight: normal; margin-top: 0;">Real-time Monitoring & Insights</h3>
-             <p style="font-size: 1.2em; margin-top: 20px;">
+             <h1 style="font-size: 3.5em; margin-bottom: 0; color: white;">ICU Sepsis Monitoring System</h1>
+             <h3 style="font-weight: normal; margin-top: 0; color: white;">Real-time Monitoring & Insights</h3>
+             <p style="font-size: 1.2em; margin-top: 20px; color: white;">
                 Welcome to our advanced monitoring system that leverages a Gradient Boosting model to assess sepsis risk in ICU patients.
                 Navigate through the tabs to input data, view patient trends, and explore model insights.
              </p>
