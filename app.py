@@ -315,24 +315,32 @@ with tabs[2]:
     if st.session_state.patient_data_log.empty:
         st.info("No patient data available yet.")
     else:
+        # Add a dropdown to select a specific patient
+        patient_options = st.session_state.patient_data_log["Patient_ID"].unique()
+        selected_patient = st.selectbox("Select a Patient to Monitor", patient_options)
+
+        # Filter data for the selected patient
+        patient_data = st.session_state.patient_data_log[st.session_state.patient_data_log["Patient_ID"] == selected_patient]
+
+        # Show Sepsis Risk Trend for the selected patient
         show_risk_line = st.checkbox("Show Sepsis Risk Trend", value=True, key="toggle_trend")
         if show_risk_line:
-            st.subheader("Sepsis Risk Trend Over Time")
-            df = st.session_state.patient_data_log.copy()
+            st.subheader(f"Sepsis Risk Trend Over Time for {selected_patient}")
             fig_trend = px.line(
-                df, 
+                patient_data, 
                 x="Timestamp", 
                 y="Sepsis_Risk", 
-                color="Patient_ID",
                 markers=True, 
-                title="Sepsis Risk Progression Over Time"
+                title=f"Sepsis Risk Progression Over Time for {selected_patient}"
             )
             st.plotly_chart(fig_trend, use_container_width=True)
-        st.subheader("Patient Data Log")
+
+        # Show Patient Data Log for the selected patient
+        st.subheader(f"Patient Data Log for {selected_patient}")
         try:
-            st.dataframe(st.session_state.patient_data_log)
+            st.dataframe(patient_data)
         except Exception as e:
-            st.dataframe(st.session_state.patient_data_log.astype(str))
+            st.dataframe(patient_data.astype(str))
 
 # ---------------------- Tab 3: Model Insights (with SHAP) ----------------------
 with tabs[3]:
