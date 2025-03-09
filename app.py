@@ -353,10 +353,20 @@ with tabs[3]:
             "Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", 
             "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"
         ]]
-    X_train_scaled = scaler.transform(X_train)
-    
-    explainer = shap.Explainer(gb_model)
-    shap_values = explainer(X_train_scaled)
+# Ensure correct feature order before transformation
+feature_order = ["Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", 
+                 "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"]
+
+# Ensure X_train uses the correct column order
+X_train = X_train[feature_order]
+
+# Apply the scaler transformation with the correct feature order
+X_train_scaled = scaler.transform(X_train)
+
+# Use SHAP explainer ensuring correct feature names
+explainer = shap.Explainer(gb_model, X_train)
+shap_values = explainer(X_train_scaled)
+
     
     st.write("### SHAP Summary Plot")
     fig = plt.figure(figsize=(10, 6))
