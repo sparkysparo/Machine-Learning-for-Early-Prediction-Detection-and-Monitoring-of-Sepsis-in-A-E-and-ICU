@@ -30,11 +30,11 @@ except ModuleNotFoundError:
 # ---------------------- Custom CSS for Button & Theme ----------------------
 st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
 
-# Custom CSS for the submit button (bright green) and other components
+# Custom CSS for the submit button (bright green) and overall styling
 st.markdown("""
     <style>
     .stButton>button {
-        background-color: #4CAF50 !important;  /* A bright green for visibility */
+        background-color: #4CAF50 !important;
         color: white !important;
         border: none;
         border-radius: 4px;
@@ -43,10 +43,14 @@ st.markdown("""
     .stButton>button:hover {
         background-color: #45a049 !important;
     }
+    /* Increase font size for the navigation toggle button */
+    .nav-toggle-btn > button {
+        font-size: 20px !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# Theme settings via sidebar (optional – not used for navigation now)
+# Theme settings via sidebar
 theme_choice = st.sidebar.radio("Select Theme", ["Light", "Dark"])
 if theme_choice == "Dark":
     sidebar_bg = "#2A2A3D"
@@ -82,16 +86,6 @@ st.markdown(f"""
     .block-container {{
         background-color: {app_bg};
     }}
-    .stButton>button {{
-        background-color: {btn_bg} !important;
-        color: {text_color} !important;
-        border: none;
-        border-radius: 4px;
-        padding: 0.5rem 1rem;
-    }}
-    .stButton>button:hover {{
-        background-color: {btn_hover} !important;
-    }}
     .stMetric {{
         background-color: {metric_bg};
         border: 1px solid #CCCCCC;
@@ -120,7 +114,7 @@ if "show_nav" not in st.session_state:
     st.session_state.show_nav = False
 
 def show_nav_menu():
-    # Hamburger icon to toggle navigation menu
+    # Toggle button displaying only the hamburger icon (☰)
     if st.button("☰", key="nav_toggle"):
         st.session_state.show_nav = not st.session_state.show_nav
         st.experimental_rerun()
@@ -175,9 +169,9 @@ if simulate:
         "Plasma_glucose": random.randint(80, 400),
         "Blood_Work_R1": random.randint(50, 400),
         "Blood_Work_R3": random.randint(10, 250),
+        "Blood_Work_R4": round(random.uniform(0, 7), 1),
         "Blood_Pressure": random.randint(40, 300),
         "BMI": round(random.uniform(18, 50), 1),
-        "Blood_Work_R4": round(random.uniform(0, 7), 1),
         "Patient_age": random.randint(20, 100),
         "Sepsis_Risk": round(random.uniform(0, 1), 2)
     }
@@ -191,7 +185,7 @@ if simulate:
 
 # ====================== Navigation & Page Rendering ======================
 if st.session_state.page == "Home":
-    show_nav_menu()  # Display toggle icon and menu if toggled
+    show_nav_menu()  # Display the navigation toggle and buttons if toggled
     # ---------------------- Home Page ----------------------
     img_path = "sepsis.jpg"
     if os.path.exists(img_path):
@@ -230,11 +224,11 @@ if st.session_state.page == "Home":
     </style>
     <div class="home-page">
          <div class="home-page-text">
-             <h1 style="font-size: 3.5em; margin-bottom: 0; color: white;">ICU Sepsis Monitoring System</h1>
-             <h3 style="font-weight: normal; margin-top: 0; color: white;">Real-time Monitoring & Insights</h3>
-             <p style="font-size: 1.2em; margin-top: 20px; color: white;">
+             <h1 style="font-size: 3.5em; margin-bottom: 0;">ICU Sepsis Monitoring System</h1>
+             <h3 style="font-weight: normal; margin-top: 0;">Real-time Monitoring & Insights</h3>
+             <p style="font-size: 1.2em; margin-top: 20px;">
                 Welcome to our advanced monitoring system that leverages a Gradient Boosting model to assess sepsis risk in ICU patients.
-                Use the navigation icon above (☰) to input data, view patient trends, and explore model insights.
+                Use the hamburger icon above (☰) to input data, view patient trends, and explore model insights.
              </p>
          </div>
     </div>
@@ -352,7 +346,7 @@ elif st.session_state.page == "Monitoring Dashboard":
     if st.session_state.patient_data_log.empty:
         st.info("No patient data available yet.")
     else:
-        # Filter by patient – convert Patient_ID to string for sorting
+        # Filter by patient – convert Patient_ID to string for proper sorting
         patient_ids = sorted(st.session_state.patient_data_log["Patient_ID"].astype(str).unique())
         selected_patient = st.selectbox("Filter by Patient (select 'All' to view every record)", ["All"] + patient_ids)
         
