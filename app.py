@@ -27,20 +27,25 @@ except ModuleNotFoundError:
     st_autorefresh = lambda **kwargs: 0  # dummy function returning 0 refresh count
     st.warning("streamlit-autorefresh module not found. Auto-refresh simulation will be disabled.")
 
-# ---------------------- Utility Functions ----------------------
-def get_base64_of_bin_file(bin_file):
-    with open(bin_file, "rb") as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
-
-def get_img_with_base64(file_path):
-    img_base64 = get_base64_of_bin_file(file_path)
-    return f"data:image/jpeg;base64,{img_base64}"
-
-# ---------------------- Page Configuration ----------------------
+# ---------------------- Custom CSS for Button & Theme ----------------------
 st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
 
-# ---------------------- Theme Toggle CSS ----------------------
+# Custom CSS for the submit button
+st.markdown("""
+    <style>
+    .stButton>button {
+        background-color: #4CAF50 !important;  /* A bright green for visibility */
+        color: white !important;
+        border: none;
+        border-radius: 4px;
+        padding: 0.5rem 1rem;
+    }
+    .stButton>button:hover {
+        background-color: #45a049 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 theme_choice = st.sidebar.radio("Select Theme", ["Light", "Dark"])
 if theme_choice == "Dark":
     sidebar_bg = "#2A2A3D"
@@ -77,14 +82,14 @@ st.markdown(f"""
         background-color: {app_bg};
     }}
     .stButton>button {{
-        background-color: {btn_bg};
-        color: {text_color};
+        background-color: {btn_bg} !important;
+        color: {text_color} !important;
         border: none;
         border-radius: 4px;
         padding: 0.5rem 1rem;
     }}
     .stButton>button:hover {{
-        background-color: {btn_hover};
+        background-color: {btn_hover} !important;
     }}
     .stMetric {{
         background-color: {metric_bg};
@@ -96,6 +101,16 @@ st.markdown(f"""
     }}
     </style>
     """, unsafe_allow_html=True)
+
+# ---------------------- Utility Functions ----------------------
+def get_base64_of_bin_file(bin_file):
+    with open(bin_file, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+def get_img_with_base64(file_path):
+    img_base64 = get_base64_of_bin_file(file_path)
+    return f"data:image/jpeg;base64,{img_base64}"
 
 # ---------------------- Caching for Model & Scaler ----------------------
 @st.cache_resource
@@ -146,19 +161,18 @@ if simulate:
     save_data(st.session_state.patient_data_log)
     st.sidebar.write(f"Simulated data added at {current_time}. Refresh count: {refresh_count}")
 
-# ---------------------- Application Navigation ----------------------
-tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights"])
+# ---------------------- Sidebar Navigation ----------------------
+# Instead of using tabs, we use a sidebar radio button to navigate
+page = st.sidebar.radio("Navigation", ["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights"])
 
-# ---------------------- Tab 0: Home ----------------------
-with tabs[0]:
-    # Get the background image as a base64 string.
+# ====================== Home Page ======================
+if page == "Home":
     img_path = "sepsis.jpg"
     if os.path.exists(img_path):
         img_base64 = get_img_with_base64(img_path)
     else:
         img_base64 = "https://via.placeholder.com/1000x400?text=Image+Not+Found"
     
-    # Use CSS to set the entire background of the Home tab with a dark overlay.
     st.markdown(f"""
     <style>
     .home-page {{
@@ -170,7 +184,6 @@ with tabs[0]:
          position: relative;
          z-index: 1;
     }}
-    /* Overlay to darken the background image for text readability */
     .home-page::before {{
          content: "";
          position: absolute;
@@ -195,7 +208,7 @@ with tabs[0]:
              <h3 style="font-weight: normal; margin-top: 0; color: white;">Real-time Monitoring & Insights</h3>
              <p style="font-size: 1.2em; margin-top: 20px; color: white;">
                 Welcome to our advanced monitoring system that leverages a Gradient Boosting model to assess sepsis risk in ICU patients.
-                Navigate through the tabs to input data, view patient trends, and explore model insights.
+                Navigate through the sidebar to input data, view patient trends, and explore model insights.
              </p>
          </div>
     </div>
@@ -204,15 +217,15 @@ with tabs[0]:
     st.write("""
         **Navigation:**
         - **Patient Entry:** Add new patient data or update existing records.
-        - **Monitoring Dashboard:** View trends and logs of patient data.
+        - **Monitoring Dashboard:** View trends and logs of patient data with filtering options.
         - **Model Insights:** Understand model predictions through SHAP explanations.
         
         Use the sidebar to simulate automatic data submissions and switch between Light and Dark themes.
     """)
     st.markdown("<hr>", unsafe_allow_html=True)
 
-# ---------------------- Tab 1: Patient Entry ----------------------
-with tabs[1]:
+# ====================== Patient Entry Page ======================
+elif page == "Patient Entry":
     st.header("Patient Data Entry")
     with st.form(key="patient_entry_form", clear_on_submit=True):
         patient_mode = st.selectbox("Select Mode", ["New Patient", "Monitor Existing Patient"], key="entry_mode")
@@ -307,33 +320,51 @@ with tabs[1]:
         fig_vitals = px.bar(pd.DataFrame(vitals), x="Vital", y="Value", title="Current Patient Vitals")
         st.plotly_chart(fig_vitals, use_container_width=True)
 
-# ---------------------- Tab 2: Monitoring Dashboard ----------------------
-with tabs[2]:
+# ====================== Monitoring Dashboard Page ======================
+elif page == "Monitoring Dashboard":
     st.header("Monitoring Dashboard")
     if st.session_state.patient_data_log.empty:
         st.info("No patient data available yet.")
     else:
+        # Add a selectbox to filter by patient
+        patient_ids = sorted(st.session_state.patient_data_log["Patient_ID"].unique())
+        selected_patient = st.selectbox("Filter by Patient (select 'All' to view every record)", ["All"] + patient_ids)
+        
+        if selected_patient != "All":
+            df = st.session_state.patient_data_log[st.session_state.patient_data_log["Patient_ID"] == selected_patient]
+        else:
+            df = st.session_state.patient_data_log.copy()
+        
+        # Sepsis risk trend line chart
         show_risk_line = st.checkbox("Show Sepsis Risk Trend", value=True, key="toggle_trend")
         if show_risk_line:
-            st.subheader("Sepsis Risk Trend Over Time")
-            df = st.session_state.patient_data_log.copy()
-            fig_trend = px.line(
-                df, 
-                x="Timestamp", 
-                y="Sepsis_Risk", 
-                color="Patient_ID",
-                markers=True, 
-                title="Sepsis Risk Progression Over Time"
-            )
+            st.subheader("Sepsis Risk Trend Over Time" + (f" for {selected_patient}" if selected_patient != "All" else ""))
+            if selected_patient == "All":
+                fig_trend = px.line(df, x="Timestamp", y="Sepsis_Risk", color="Patient_ID", markers=True,
+                                     title="Sepsis Risk Progression Over Time")
+            else:
+                fig_trend = px.line(df, x="Timestamp", y="Sepsis_Risk", markers=True,
+                                     title=f"Sepsis Risk Progression for Patient {selected_patient}")
             st.plotly_chart(fig_trend, use_container_width=True)
+        
+        # If a specific patient is selected, show a bar chart for their latest vitals
+        if selected_patient != "All":
+            st.subheader(f"Latest Vital Signs for Patient {selected_patient}")
+            latest_record = df.iloc[-1]
+            vitals = {
+                "Vital": ["Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"],
+                "Value": [latest_record["Plasma_glucose"], latest_record["Blood_Work_R1"],
+                          latest_record["Blood_Pressure"], latest_record["Blood_Work_R3"],
+                          latest_record["BMI"], latest_record["Blood_Work_R4"], latest_record["Patient_age"]]
+            }
+            fig_vitals = px.bar(pd.DataFrame(vitals), x="Vital", y="Value", title="Current Patient Vitals")
+            st.plotly_chart(fig_vitals, use_container_width=True)
+        
         st.subheader("Patient Data Log")
-        try:
-            st.dataframe(st.session_state.patient_data_log)
-        except Exception as e:
-            st.dataframe(st.session_state.patient_data_log.astype(str))
+        st.dataframe(df)
 
-# ---------------------- Tab 3: Model Insights (with SHAP) ----------------------
-with tabs[3]:
+# ====================== Model Insights Page ======================
+elif page == "Model Insights":
     st.header("Model Insights")
     st.write("Generating SHAP feature importance for: **Gradient Boosting Model**")
     
