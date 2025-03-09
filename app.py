@@ -1,7 +1,7 @@
 import warnings
 # Suppress specific warnings
-warnings.filterwarnings("ignore", message="In the future `np.bool` will be defined as the corresponding NumPy scalar.")
-warnings.filterwarnings("ignore", message="The `use_column_width` parameter has been deprecated.*")
+warnings.filterwarnings("ignore", message="In the future np.bool will be defined as the corresponding NumPy scalar.")
+warnings.filterwarnings("ignore", message="The use_column_width parameter has been deprecated.*")
 warnings.filterwarnings("ignore", message="Serialization of dataframe to Arrow table was unsuccessful.*")
 
 import numpy as np
@@ -268,6 +268,9 @@ with tabs[1]:
                 ].iloc[-1]
                 data_dict["Patient_Name"] = existing_name
 
+        # Ensure correct feature order before transformation
+        feature_order = ["Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", 
+                         "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"]
         input_df = pd.DataFrame([[
             data_dict["Plasma_glucose"],
             data_dict["Blood_Work_R1"],
@@ -276,8 +279,7 @@ with tabs[1]:
             data_dict["BMI"],
             data_dict["Blood_Work_R4"],
             data_dict["Patient_age"]
-        ]], columns=["Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", 
-                     "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"])
+        ]], columns=feature_order)
         
         scaled_data = scaler.transform(input_df)
         sepsis_risk = gb_model.predict_proba(scaled_data)[0][1]
@@ -347,26 +349,16 @@ with tabs[3]:
             "BMI": np.linspace(25, 30, 10),
             "Blood_Work_R4": np.linspace(0.5, 1.0, 10),
             "Patient_age": np.linspace(40, 60, 10)
-        })
+        }, columns=feature_order)
     else:
-        X_train = st.session_state.patient_data_log[[
-            "Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", 
-            "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"
-        ]]
-# Ensure correct feature order before transformation
-feature_order = ["Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", 
-                 "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"]
+        X_train = st.session_state.patient_data_log[feature_order]
+    
+    # Apply the scaler transformation with the correct feature order
+    X_train_scaled = scaler.transform(X_train)
 
-# Ensure X_train uses the correct column order
-X_train = X_train[feature_order]
-
-# Apply the scaler transformation with the correct feature order
-X_train_scaled = scaler.transform(X_train)
-
-# Use SHAP explainer ensuring correct feature names
-explainer = shap.Explainer(gb_model, X_train)
-shap_values = explainer(X_train_scaled)
-
+    # Use SHAP explainer ensuring correct feature names
+    explainer = shap.Explainer(gb_model, X_train)
+    shap_values = explainer(X_train_scaled)
     
     st.write("### SHAP Summary Plot")
     fig = plt.figure(figsize=(10, 6))
