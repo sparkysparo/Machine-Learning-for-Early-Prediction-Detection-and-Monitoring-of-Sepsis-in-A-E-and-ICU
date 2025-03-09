@@ -152,7 +152,7 @@ if simulate:
     st.sidebar.write(f"Simulated data added at {current_time}. Refresh count: {refresh_count}")
 
 # ---------------------- Application Navigation ----------------------
-tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights"])
+tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights", "Advanced Analytics"])
 
 # ---------------------- Tab 0: Home ----------------------
 with tabs[0]:
