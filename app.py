@@ -1,12 +1,7 @@
-import streamlit as st  # Import Streamlit first
-
-# 🔹 MUST BE THE FIRST STREAMLIT COMMAND
-st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
-
-# Now import everything else
 import warnings
 import numpy as np
 import base64
+import streamlit as st
 import pandas as pd
 import joblib
 import time
@@ -17,12 +12,33 @@ import shap
 from sklearn.preprocessing import StandardScaler
 import random
 
-# Suppress warnings
-warnings.filterwarnings("ignore")
+# Suppress specific warnings
+warnings.filterwarnings("ignore", message="In the future `np.bool` will be defined as the corresponding NumPy scalar.")
+warnings.filterwarnings("ignore", message="The `use_column_width` parameter has been deprecated.*")
+warnings.filterwarnings("ignore", message="Serialization of dataframe to Arrow table was unsuccessful.*")
+
+# Try to import st_autorefresh; if not available, define a dummy function.
+try:
+    from streamlit_autorefresh import st_autorefresh
+except ModuleNotFoundError:
+    st_autorefresh = lambda **kwargs: 0  # Dummy function returning 0 refresh count
+    st.warning("streamlit-autorefresh module not found. Auto-refresh simulation will be disabled.")
+
+# ---------------------- Utility Functions ----------------------
+def get_base64_of_bin_file(bin_file):
+    with open(bin_file, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+def get_img_with_base64(file_path):
+    img_base64 = get_base64_of_bin_file(file_path)
+    return f"data:image/jpeg;base64,{img_base64}"
+
+# ---------------------- Page Configuration ----------------------
+st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
 
 # ---------------------- Theme Toggle ----------------------
 theme_choice = st.sidebar.radio("Select Theme", ["Light", "Dark"])
-
 if theme_choice == "Dark":
     sidebar_bg = "#2A2A3D"
     app_bg = "#1E1E2F"
@@ -31,25 +47,6 @@ else:
     sidebar_bg = "#FFFFFF"
     app_bg = "#F7F7F7"
     text_color = "#333333"
-
-# Apply Theme
-st.markdown(f"""
-    <style>
-    .stApp {{
-        background-color: {app_bg};
-        color: {text_color};
-    }}
-    h1, h2, h3, h4, h5, h6, p, label {{
-        color: {text_color};
-    }}
-    [data-testid="stSidebar"] {{
-        background-color: {sidebar_bg};
-    }}
-    [data-testid="stSidebar"] * {{
-        color: {text_color};
-    }}
-    </style>
-    """, unsafe_allow_html=True)
 
 # ---------------------- Caching for Model & Scaler ----------------------
 @st.cache_resource
@@ -60,10 +57,10 @@ def load_model_and_scaler():
 
 gb_model, scaler = load_model_and_scaler()
 
-# Extract expected feature names from the trained scaler
+# Extract expected feature names from scaler
 expected_columns = list(scaler.feature_names_in_)
 
-# ---------------------- Data Persistence ----------------------
+# ---------------------- Data Persistence Setup ----------------------
 DATA_FILE = "patient_data_log.csv"
 if "patient_data_log" not in st.session_state:
     if os.path.exists(DATA_FILE):
@@ -76,28 +73,75 @@ if "patient_data_log" not in st.session_state:
 def save_data(df):
     df.to_csv(DATA_FILE, index=False)
 
+# ---------------------- Simulation for Automatic Data Submission ----------------------
+simulate = st.sidebar.checkbox("Simulate Automatic Data Submission", value=False)
+if simulate:
+    refresh_count = st_autorefresh(interval=5000, limit=100, key="data_simulation")
+    current_time = time.strftime("%H:%M:%S")
+    simulated_data = {
+        "Timestamp": current_time,
+        "Patient_ID": f"Sim-{random.randint(100,999)}",
+        "Patient_Name": f"Simulated Patient {random.randint(1,50)}",
+        "Plasma_glucose": random.randint(80, 400),
+        "Blood_Work_R1": random.randint(50, 400),
+        "Blood_Pressure": random.randint(40, 300),
+        "Blood_Work_R3": random.randint(10, 250),
+        "BMI": round(random.uniform(18, 50), 1),
+        "Blood_Work_R4": round(random.uniform(0, 7), 1),
+        "Patient_age": random.randint(20, 100),
+        "Sepsis_Risk": round(random.uniform(0, 1), 2)
+    }
+    new_entry = pd.DataFrame([simulated_data])
+    st.session_state.patient_data_log = pd.concat(
+        [st.session_state.patient_data_log, new_entry],
+        ignore_index=True
+    )
+    save_data(st.session_state.patient_data_log)
+
 # ---------------------- Application Navigation ----------------------
 tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights"])
 
-# ---------------------- Tab 0: Home ----------------------
-with tabs[0]:
-    st.header("🏥 ICU Sepsis Monitoring System")
+# ---------------------- Tab 1: Patient Entry ----------------------
+with tabs[1]:
+    st.header("Patient Data Entry")
+    with st.form(key="patient_entry_form", clear_on_submit=True):
+        patient_mode = st.selectbox("Select Mode", ["New Patient", "Monitor Existing Patient"], key="entry_mode")
+        
+        if patient_mode == "New Patient":
+            patient_id_input = st.text_input("Enter Patient ID")
+            patient_name_input = st.text_input("Enter Patient Name")
+        else:
+            existing_patients = st.session_state.patient_data_log[["Patient_ID", "Patient_Name"]].drop_duplicates()
+            options = [f"{row['Patient_ID']} - {row['Patient_Name']}" for _, row in existing_patients.iterrows()]
+            selected_patient_option = st.selectbox("Select Patient", options)
+            selected_patient_id = selected_patient_option.split(" - ")[0]
 
-    st.markdown(f"""
-    <div style="background-color: {app_bg}; padding: 20px; border-radius: 10px;">
-        <h1 style="color: {text_color};">ICU Sepsis Monitoring</h1>
-        <h3 style="color: {text_color};">Real-time Patient Monitoring & Insights</h3>
-        <p style="font-size: 1.2em; color: {text_color};">
-            This system leverages a Gradient Boosting model to predict sepsis risk in ICU patients.  
-            Navigate through the tabs to input data, monitor patient trends, and explore model insights.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+        st.subheader("Enter Vital Signs")
+        data_dict = {col: st.slider(col, 0, 300, 100) for col in expected_columns}
+        submit_button = st.form_submit_button("Submit Data")
+
+    if submit_button:
+        data_dict["Timestamp"] = time.strftime("%H:%M:%S")
+        if patient_mode == "New Patient":
+            data_dict["Patient_ID"] = patient_id_input.strip()
+            data_dict["Patient_Name"] = patient_name_input.strip()
+        else:
+            data_dict["Patient_ID"] = selected_patient_id
+            data_dict["Patient_Name"] = existing_patients.loc[
+                existing_patients["Patient_ID"] == selected_patient_id, "Patient_Name"
+            ].iloc[-1]
+
+        input_df = pd.DataFrame([data_dict], columns=expected_columns)
+        scaled_data = pd.DataFrame(scaler.transform(input_df), columns=expected_columns)
+        data_dict["Sepsis_Risk"] = gb_model.predict_proba(scaled_data)[0][1]
+
+        new_entry = pd.DataFrame([data_dict])
+        st.session_state.patient_data_log = pd.concat([st.session_state.patient_data_log, new_entry], ignore_index=True)
+        save_data(st.session_state.patient_data_log)
 
 # ---------------------- Tab 3: Model Insights ----------------------
 with tabs[3]:
     st.header("Model Insights")
-
     if not st.session_state.patient_data_log.empty:
         X_train = st.session_state.patient_data_log[expected_columns]
         X_train_scaled = pd.DataFrame(scaler.transform(X_train), columns=expected_columns)
@@ -105,37 +149,10 @@ with tabs[3]:
         explainer = shap.Explainer(gb_model)
         shap_values = explainer(X_train_scaled)
 
-        # SHAP Summary Plot
         st.write("### SHAP Summary Plot")
         fig, ax = plt.subplots(figsize=(10, 6))
         shap.summary_plot(shap_values, X_train, show=False)
         st.pyplot(fig)
         plt.close(fig)
-
-        # Extract Feature Importance
-        feature_importance = np.abs(shap_values.values).mean(axis=0)
-        importance_df = pd.DataFrame({
-            "Feature": expected_columns,
-            "Importance": feature_importance
-        }).sort_values(by="Importance", ascending=False)
-
-        # Get top 3 most important features
-        top_features = importance_df.head(3)["Feature"].tolist()
-
-        with st.expander("About SHAP Feature Importance"):
-            st.write("""
-            **SHAP (SHapley Additive exPlanations) assigns each feature an importance value for a particular prediction.**  
-            - Features at the top of the plot have the highest impact on the model output.  
-            - This visualization helps in understanding how each vital sign contributes to sepsis risk prediction.  
-            """)
-
-            if top_features:
-                st.write("### 🚀 **Key Insights from the Model:**")
-                st.write(f"🔹 **{top_features[0]}** has the highest influence on predicting sepsis risk.")
-                if len(top_features) > 1:
-                    st.write(f"🔸 **{top_features[1]}** is the second most important feature.")
-                if len(top_features) > 2:
-                    st.write(f"🔹 **{top_features[2]}** also plays a significant role.")
-
     else:
         st.info("No data available for SHAP analysis.")
