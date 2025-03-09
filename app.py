@@ -9,6 +9,7 @@ import os
 import matplotlib.pyplot as plt
 import plotly.express as px
 import shap
+from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import random
 
