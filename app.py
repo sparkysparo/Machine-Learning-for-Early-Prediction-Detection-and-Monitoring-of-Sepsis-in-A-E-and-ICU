@@ -155,32 +155,57 @@ with tabs[0]:
     st.markdown("<hr>", unsafe_allow_html=True)
 
 # ---------------------- Tab 1: Monitoring Dashboard ----------------------
-with tabs[1]:
+with tabs[1]:  # FIXED: Correct tab index
     st.header("Monitoring Dashboard")
     if st.session_state.patient_data_log.empty:
         st.info("No patient data available yet.")
     else:
+        show_risk_line = st.checkbox("Show Sepsis Risk Trend", value=True, key="toggle_trend")
+        if show_risk_line:
+            st.subheader("Sepsis Risk Trend Over Time")
+            df = st.session_state.patient_data_log.copy()
+            fig_trend = px.line(
+                df, 
+                x="Timestamp", 
+                y="Sepsis_Risk", 
+                color="Patient_ID",
+                markers=True, 
+                title="Sepsis Risk Progression Over Time"
+            )
+            st.plotly_chart(fig_trend, use_container_width=True)
+
         st.subheader("Patient Data Log")
         try:
             st.dataframe(st.session_state.patient_data_log)
-        except Exception as e:
+        except Exception:
             st.dataframe(st.session_state.patient_data_log.astype(str))
 
-# ---------------------- Tab 2: Model Insights (SHAP) ----------------------
-with tabs[2]:
+# ---------------------- Tab 2: Model Insights (with SHAP) ----------------------
+with tabs[2]:  # FIXED: Correct tab index
     st.header("Model Insights")
     st.write("Generating SHAP feature importance for: **Gradient Boosting Model**")
     
     if st.session_state.patient_data_log.empty:
-        st.info("No patient data available for SHAP analysis.")
+        st.info("No patient data available for SHAP analysis. Using a dummy sample.")
+        X_train = pd.DataFrame({
+            "Plasma_glucose": np.linspace(100, 150, 10),
+            "Blood_Work_R1": np.linspace(120, 160, 10),
+            "Blood_Work_R3": np.linspace(30, 50, 10),
+            "Blood_Pressure": np.linspace(80, 120, 10),
+            "BMI": np.linspace(25, 30, 10),
+            "Blood_Work_R4": np.linspace(0.5, 1.0, 10),
+            "Patient_age": np.linspace(40, 60, 10)
+        })
     else:
-        expected_columns = list(scaler.feature_names_in_)
+        expected_columns = list(scaler.feature_names_in_)  # FIXED: Ensure correct feature order
         X_train = st.session_state.patient_data_log[expected_columns]
+    
+    # Ensure there is data before scaling
+    if not X_train.empty:
         X_train_scaled = pd.DataFrame(scaler.transform(X_train), columns=expected_columns)
-
         explainer = shap.Explainer(gb_model)
         shap_values = explainer(X_train_scaled)
-
+        
         st.write("### SHAP Summary Plot")
         fig = plt.figure(figsize=(10, 6))
         try:
@@ -189,3 +214,12 @@ with tabs[2]:
             st.error(f"Error generating SHAP summary plot: {e}")
         st.pyplot(fig)
         plt.close(fig)
+    else:
+        st.warning("No valid data available for SHAP interpretation.")
+
+    with st.expander("About SHAP Feature Importance"):
+        st.write("""
+        SHAP (SHapley Additive exPlanations) assigns each feature an importance value for a particular prediction.
+        - Features at the top of the plot have the highest impact on the model output.
+        - This visualization helps in understanding how each vital sign contributes to the sepsis risk prediction.
+        """)
