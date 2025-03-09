@@ -404,3 +404,55 @@ with tabs[3]:
         for feature in feature_order:
             fig = px.bar(comparison_data, x="Patient_ID", y=feature, title=f"{feature} Comparison")
             st.plotly_chart(fig)
+
+# ---------------------- Tab 4: Advanced Analytics ----------------------
+with tabs[4]:
+    st.header("Advanced Analytics")
+    
+    # Patient Clustering
+    st.write("### Patient Clustering")
+    st.write("Group patients based on their vitals and sepsis risk using K-Means clustering.")
+    
+    # Perform clustering
+    X_train_scaled = scaler.transform(st.session_state.patient_data_log[feature_order])
+    kmeans = KMeans(n_clusters=3)
+    st.session_state.patient_data_log["Cluster"] = kmeans.fit_predict(X_train_scaled)
+
+    # Visualize clusters
+    fig = px.scatter(
+        st.session_state.patient_data_log,
+        x="Plasma_glucose",
+        y="Blood_Pressure",
+        color="Cluster",
+        title="Patient Clustering Based on Vitals"
+    )
+    st.plotly_chart(fig)
+
+    # Predictive Alerts
+    st.write("### Predictive Alerts")
+    st.write("Highlight high-risk patients and send alerts.")
+    
+    high_risk_patients = st.session_state.patient_data_log[st.session_state.patient_data_log["Sepsis_Risk"] > 0.7]
+    if not high_risk_patients.empty:
+        st.error("🚨 High-Risk Patients Detected! 🚨")
+        st.dataframe(high_risk_patients)
+    else:
+        st.success("No high-risk patients detected.")
+
+    # Animated Visualizations
+    st.write("### Animated Sepsis Risk Trends")
+    st.write("Visualize sepsis risk trends over time with animated charts.")
+    
+    # Ensure Timestamp is in datetime format
+    st.session_state.patient_data_log["Timestamp"] = pd.to_datetime(st.session_state.patient_data_log["Timestamp"])
+    
+    # Create animated scatter plot
+    fig = px.scatter(
+        st.session_state.patient_data_log,
+        x="Plasma_glucose",
+        y="Blood_Pressure",
+        animation_frame="Timestamp",
+        color="Patient_ID",
+        title="Animated Sepsis Risk Trends"
+    )
+    st.plotly_chart(fig)
