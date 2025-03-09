@@ -180,8 +180,8 @@ with tabs[1]:  # FIXED: Correct tab index
         except Exception:
             st.dataframe(st.session_state.patient_data_log.astype(str))
 
-# ---------------------- Tab 2: Model Insights (with SHAP) ----------------------
-with tabs[2]:  # FIXED: Correct tab index
+# ---------------------- Tab 3: Model Insights (with SHAP) ----------------------
+with tabs[3]:
     st.header("Model Insights")
     st.write("Generating SHAP feature importance for: **Gradient Boosting Model**")
     
@@ -197,26 +197,27 @@ with tabs[2]:  # FIXED: Correct tab index
             "Patient_age": np.linspace(40, 60, 10)
         })
     else:
-        expected_columns = list(scaler.feature_names_in_)  # FIXED: Ensure correct feature order
-        X_train = st.session_state.patient_data_log[expected_columns]
+        X_train = st.session_state.patient_data_log[[
+            "Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", 
+            "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"
+        ]]
+    X_train_scaled = scaler.transform(X_train)
     
-    # Ensure there is data before scaling
-    if not X_train.empty:
-        X_train_scaled = pd.DataFrame(scaler.transform(X_train), columns=expected_columns)
-        explainer = shap.Explainer(gb_model)
-        shap_values = explainer(X_train_scaled)
-        
-        st.write("### SHAP Summary Plot")
-        fig = plt.figure(figsize=(10, 6))
-        try:
-            shap.summary_plot(shap_values, X_train, show=False)
-        except ValueError as e:
-            st.error(f"Error generating SHAP summary plot: {e}")
-        st.pyplot(fig)
-        plt.close(fig)
-    else:
-        st.warning("No valid data available for SHAP interpretation.")
-
+    explainer = shap.Explainer(gb_model)
+    shap_values = explainer(X_train_scaled)
+    
+    st.write("### SHAP Summary Plot")
+    fig = plt.figure(figsize=(10, 6))
+    try:
+        shap.summary_plot(shap_values, X_train, show=False, color_bar=False)
+        for ax in fig.axes:
+            if hasattr(ax, 'images') and len(ax.images) > 0:
+                ax.images = []
+    except ValueError as e:
+        st.error("Error generating SHAP summary plot: " + str(e))
+    st.pyplot(fig)
+    plt.close(fig)
+    
     with st.expander("About SHAP Feature Importance"):
         st.write("""
         SHAP (SHapley Additive exPlanations) assigns each feature an importance value for a particular prediction.
