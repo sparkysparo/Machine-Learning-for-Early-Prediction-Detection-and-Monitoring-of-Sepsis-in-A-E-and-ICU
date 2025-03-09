@@ -1,13 +1,5 @@
 import warnings
-# Suppress specific warnings
-warnings.filterwarnings("ignore", message="In the future np.bool will be defined as the corresponding NumPy scalar.")
-warnings.filterwarnings("ignore", message="The use_column_width parameter has been deprecated.*")
-warnings.filterwarnings("ignore", message="Serialization of dataframe to Arrow table was unsuccessful.*")
-
 import numpy as np
-if not hasattr(np, 'bool'):
-    np.bool = bool
-
 import base64
 import streamlit as st
 import pandas as pd
@@ -16,9 +8,22 @@ import time
 import os
 import matplotlib.pyplot as plt
 import plotly.express as px
-import shap  # Ensure shap is installed (pip install shap)
+import shap
 from sklearn.preprocessing import StandardScaler
 import random
+
+# Suppress specific warnings
+warnings.filterwarnings("ignore", message="In the future np.bool will be defined as the corresponding NumPy scalar.")
+warnings.filterwarnings("ignore", message="The use_column_width parameter has been deprecated.*")
+warnings.filterwarnings("ignore", message="Serialization of dataframe to Arrow table was unsuccessful.*")
+
+# Define the correct feature order globally
+feature_order = ["Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", 
+                 "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"]
+
+# Fix for np.bool deprecation
+if not hasattr(np, 'bool'):
+    np.bool = bool
 
 # Try to import st_autorefresh; if not available, define a dummy function.
 try:
@@ -269,8 +274,6 @@ with tabs[1]:
                 data_dict["Patient_Name"] = existing_name
 
         # Ensure correct feature order before transformation
-        feature_order = ["Plasma_glucose", "Blood_Work_R1", "Blood_Pressure", 
-                         "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age"]
         input_df = pd.DataFrame([[
             data_dict["Plasma_glucose"],
             data_dict["Blood_Work_R1"],
