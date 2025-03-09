@@ -387,26 +387,36 @@ with tabs[3]:
             "Patient_age": np.linspace(40, 60, 10)
         }, columns=feature_order)
     else:
+        # Ensure X_train contains only numeric columns
         X_train = st.session_state.patient_data_log[feature_order]
-    
+        
+        # Convert all columns to numeric, coercing errors (e.g., non-numeric values) to NaN
+        X_train = X_train.apply(pd.to_numeric, errors='coerce')
+        
+        # Drop rows with NaN values (optional: you can also fill NaN values with a default value)
+        X_train = X_train.dropna()
+
     # Apply the scaler transformation with the correct feature order
     X_train_scaled = scaler.transform(X_train)
 
     # Use SHAP explainer ensuring correct feature names
-    explainer = shap.Explainer(gb_model, X_train)
-    shap_values = explainer(X_train_scaled)
-    
-    st.write("### SHAP Summary Plot")
-    fig = plt.figure(figsize=(10, 6))
     try:
-        shap.summary_plot(shap_values, X_train, show=False, color_bar=False)
-        for ax in fig.axes:
-            if hasattr(ax, 'images') and len(ax.images) > 0:
-                ax.images = []
-    except ValueError as e:
-        st.error("Error generating SHAP summary plot: " + str(e))
-    st.pyplot(fig)
-    plt.close(fig)
+        explainer = shap.Explainer(gb_model, X_train_scaled)
+        shap_values = explainer(X_train_scaled)
+        
+        st.write("### SHAP Summary Plot")
+        fig = plt.figure(figsize=(10, 6))
+        try:
+            shap.summary_plot(shap_values, X_train_scaled, feature_names=feature_order, show=False, color_bar=False)
+            for ax in fig.axes:
+                if hasattr(ax, 'images') and len(ax.images) > 0:
+                    ax.images = []
+        except ValueError as e:
+            st.error("Error generating SHAP summary plot: " + str(e))
+        st.pyplot(fig)
+        plt.close(fig)
+    except Exception as e:
+        st.error(f"Error initializing SHAP explainer: {e}")
     
     with st.expander("About SHAP Feature Importance"):
         st.write("""
