@@ -1,7 +1,12 @@
+import streamlit as st  # Ensure streamlit is imported first
+
+# Set page configuration (THIS MUST BE THE FIRST STREAMLIT COMMAND)
+st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
+
+# Now import everything else
 import warnings
 import numpy as np
 import base64
-import streamlit as st
 import pandas as pd
 import joblib
 import time
@@ -11,6 +16,7 @@ import plotly.express as px
 import shap
 from sklearn.preprocessing import StandardScaler
 import random
+
 
 # Suppress warnings
 warnings.filterwarnings("ignore")
