@@ -30,7 +30,7 @@ except ModuleNotFoundError:
 # ---------------------- Custom CSS for Button & Theme ----------------------
 st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
 
-# Custom CSS for the submit button
+# Custom CSS for the submit button (bright green) and other components
 st.markdown("""
     <style>
     .stButton>button {
@@ -46,6 +46,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# Theme settings via sidebar (optional – not used for navigation now)
 theme_choice = st.sidebar.radio("Select Theme", ["Light", "Dark"])
 if theme_choice == "Dark":
     sidebar_bg = "#2A2A3D"
@@ -112,6 +113,25 @@ def get_img_with_base64(file_path):
     img_base64 = get_base64_of_bin_file(file_path)
     return f"data:image/jpeg;base64,{img_base64}"
 
+# ---------------------- Navigation Helper ----------------------
+if "page" not in st.session_state:
+    st.session_state.page = "Home"
+
+def show_nav_bar():
+    cols = st.columns(4)
+    if cols[0].button("Home"):
+        st.session_state.page = "Home"
+        st.experimental_rerun()
+    if cols[1].button("Patient Entry"):
+        st.session_state.page = "Patient Entry"
+        st.experimental_rerun()
+    if cols[2].button("Monitoring Dashboard"):
+        st.session_state.page = "Monitoring Dashboard"
+        st.experimental_rerun()
+    if cols[3].button("Model Insights"):
+        st.session_state.page = "Model Insights"
+        st.experimental_rerun()
+
 # ---------------------- Caching for Model & Scaler ----------------------
 @st.cache_resource
 def load_model_and_scaler():
@@ -161,12 +181,10 @@ if simulate:
     save_data(st.session_state.patient_data_log)
     st.sidebar.write(f"Simulated data added at {current_time}. Refresh count: {refresh_count}")
 
-# ---------------------- Sidebar Navigation ----------------------
-# Instead of using tabs, we use a sidebar radio button to navigate
-page = st.sidebar.radio("Navigation", ["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights"])
-
-# ====================== Home Page ======================
-if page == "Home":
+# ====================== Navigation & Page Rendering ======================
+if st.session_state.page == "Home":
+    show_nav_bar()  # Display navigation buttons at the top
+    # ---------------------- Home Page ----------------------
     img_path = "sepsis.jpg"
     if os.path.exists(img_path):
         img_base64 = get_img_with_base64(img_path)
@@ -208,7 +226,7 @@ if page == "Home":
              <h3 style="font-weight: normal; margin-top: 0; color: white;">Real-time Monitoring & Insights</h3>
              <p style="font-size: 1.2em; margin-top: 20px; color: white;">
                 Welcome to our advanced monitoring system that leverages a Gradient Boosting model to assess sepsis risk in ICU patients.
-                Navigate through the sidebar to input data, view patient trends, and explore model insights.
+                Use the navigation buttons above to input data, view patient trends, and explore model insights.
              </p>
          </div>
     </div>
@@ -219,13 +237,12 @@ if page == "Home":
         - **Patient Entry:** Add new patient data or update existing records.
         - **Monitoring Dashboard:** View trends and logs of patient data with filtering options.
         - **Model Insights:** Understand model predictions through SHAP explanations.
-        
-        Use the sidebar to simulate automatic data submissions and switch between Light and Dark themes.
     """)
     st.markdown("<hr>", unsafe_allow_html=True)
 
-# ====================== Patient Entry Page ======================
-elif page == "Patient Entry":
+elif st.session_state.page == "Patient Entry":
+    show_nav_bar()  # Navigation buttons
+    # ---------------------- Patient Entry Page ----------------------
     st.header("Patient Data Entry")
     with st.form(key="patient_entry_form", clear_on_submit=True):
         patient_mode = st.selectbox("Select Mode", ["New Patient", "Monitor Existing Patient"], key="entry_mode")
@@ -320,18 +337,19 @@ elif page == "Patient Entry":
         fig_vitals = px.bar(pd.DataFrame(vitals), x="Vital", y="Value", title="Current Patient Vitals")
         st.plotly_chart(fig_vitals, use_container_width=True)
 
-# ====================== Monitoring Dashboard Page ======================
-elif page == "Monitoring Dashboard":
+elif st.session_state.page == "Monitoring Dashboard":
+    show_nav_bar()  # Navigation buttons
+    # ---------------------- Monitoring Dashboard Page ----------------------
     st.header("Monitoring Dashboard")
     if st.session_state.patient_data_log.empty:
         st.info("No patient data available yet.")
     else:
-        # Add a selectbox to filter by patient
-        patient_ids = sorted(st.session_state.patient_data_log["Patient_ID"].unique())
+        # Filter by patient – ensure Patient_ID is treated as a string to avoid sorting issues
+        patient_ids = sorted(st.session_state.patient_data_log["Patient_ID"].astype(str).unique())
         selected_patient = st.selectbox("Filter by Patient (select 'All' to view every record)", ["All"] + patient_ids)
         
         if selected_patient != "All":
-            df = st.session_state.patient_data_log[st.session_state.patient_data_log["Patient_ID"] == selected_patient]
+            df = st.session_state.patient_data_log[st.session_state.patient_data_log["Patient_ID"].astype(str) == selected_patient]
         else:
             df = st.session_state.patient_data_log.copy()
         
@@ -363,8 +381,9 @@ elif page == "Monitoring Dashboard":
         st.subheader("Patient Data Log")
         st.dataframe(df)
 
-# ====================== Model Insights Page ======================
-elif page == "Model Insights":
+elif st.session_state.page == "Model Insights":
+    show_nav_bar()  # Navigation buttons
+    # ---------------------- Model Insights Page ----------------------
     st.header("Model Insights")
     st.write("Generating SHAP feature importance for: **Gradient Boosting Model**")
     
