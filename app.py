@@ -370,57 +370,37 @@ with tabs[2]:
             except Exception as e:
                 st.dataframe(st.session_state.patient_data_log.astype(str))
 
-# ---------------------- Tab 3: Model Insights (with SHAP) ----------------------
+# ---------------------- Tab 3: Model Insights ----------------------
 with tabs[3]:
     st.header("Model Insights")
-    st.write("Generating SHAP feature importance for: **Gradient Boosting Model**")
     
-    if st.session_state.patient_data_log.empty:
-        st.info("No patient data available for SHAP analysis. Using a dummy sample.")
-        X_train = pd.DataFrame({
-            "Plasma_glucose": np.linspace(100, 150, 10),
-            "Blood_Work_R1": np.linspace(120, 160, 10),
-            "Blood_Work_R3": np.linspace(30, 50, 10),
-            "Blood_Pressure": np.linspace(80, 120, 10),
-            "BMI": np.linspace(25, 30, 10),
-            "Blood_Work_R4": np.linspace(0.5, 1.0, 10),
-            "Patient_age": np.linspace(40, 60, 10)
-        }, columns=feature_order)
-    else:
-        # Ensure X_train contains only numeric columns
-        X_train = st.session_state.patient_data_log[feature_order]
-        
-        # Convert all columns to numeric, coercing errors (e.g., non-numeric values) to NaN
-        X_train = X_train.apply(pd.to_numeric, errors='coerce')
-        
-        # Drop rows with NaN values (optional: you can also fill NaN values with a default value)
-        X_train = X_train.dropna()
+    # Feature Importance Plot
+    st.write("### Feature Importance Plot")
+    importances = gb_model.feature_importances_
+    importance_df = pd.DataFrame({"Feature": feature_order, "Importance": importances})
+    importance_df = importance_df.sort_values(by="Importance", ascending=False)
+    fig = px.bar(importance_df, x="Feature", y="Importance", title="Feature Importance for Sepsis Risk Prediction")
+    st.plotly_chart(fig)
 
-    # Apply the scaler transformation with the correct feature order
-    X_train_scaled = scaler.transform(X_train)
+    # Sepsis Risk Distribution
+    st.write("### Sepsis Risk Distribution")
+    fig = px.histogram(st.session_state.patient_data_log, x="Sepsis_Risk", nbins=20, title="Distribution of Sepsis Risk Scores")
+    st.plotly_chart(fig)
 
-    # Use SHAP explainer ensuring correct feature names
-    try:
-        explainer = shap.Explainer(gb_model, X_train_scaled)
-        shap_values = explainer(X_train_scaled)
+    # Patient Comparison Tool
+    st.write("### Patient Comparison Tool")
+    patient_options = st.session_state.patient_data_log["Patient_ID"].unique()
+    selected_patients = st.multiselect("Select Patients to Compare", patient_options)
+
+    if selected_patients:
+        comparison_data = st.session_state.patient_data_log[st.session_state.patient_data_log["Patient_ID"].isin(selected_patients)]
         
-        st.write("### SHAP Summary Plot")
-        fig = plt.figure(figsize=(10, 6))
-        try:
-            shap.summary_plot(shap_values, X_train_scaled, feature_names=feature_order, show=False, color_bar=False)
-            for ax in fig.axes:
-                if hasattr(ax, 'images') and len(ax.images) > 0:
-                    ax.images = []
-        except ValueError as e:
-            st.error("Error generating SHAP summary plot: " + str(e))
-        st.pyplot(fig)
-        plt.close(fig)
-    except Exception as e:
-        st.error(f"Error initializing SHAP explainer: {e}")
-    
-    with st.expander("About SHAP Feature Importance"):
-        st.write("""
-        SHAP (SHapley Additive exPlanations) assigns each feature an importance value for a particular prediction.
-        - Features at the top of the plot have the highest impact on the model output.
-        - This visualization helps in understanding how each vital sign contributes to the sepsis risk prediction.
-        """)
+        # Display comparison table
+        st.write("#### Comparison Table")
+        st.dataframe(comparison_data)
+
+        # Display comparison charts
+        st.write("#### Comparison Charts")
+        for feature in feature_order:
+            fig = px.bar(comparison_data, x="Patient_ID", y=feature, title=f"{feature} Comparison")
+            st.plotly_chart(fig)
