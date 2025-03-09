@@ -113,24 +113,32 @@ def get_img_with_base64(file_path):
     img_base64 = get_base64_of_bin_file(file_path)
     return f"data:image/jpeg;base64,{img_base64}"
 
-# ---------------------- Navigation Helper ----------------------
+# ---------------------- Navigation Helper with Toggle Icon ----------------------
 if "page" not in st.session_state:
     st.session_state.page = "Home"
+if "show_nav" not in st.session_state:
+    st.session_state.show_nav = False
 
-def show_nav_bar():
-    cols = st.columns(4)
-    if cols[0].button("Home"):
-        st.session_state.page = "Home"
+def show_nav_menu():
+    # Hamburger icon to toggle navigation menu
+    if st.button("☰", key="nav_toggle"):
+        st.session_state.show_nav = not st.session_state.show_nav
         st.experimental_rerun()
-    if cols[1].button("Patient Entry"):
-        st.session_state.page = "Patient Entry"
-        st.experimental_rerun()
-    if cols[2].button("Monitoring Dashboard"):
-        st.session_state.page = "Monitoring Dashboard"
-        st.experimental_rerun()
-    if cols[3].button("Model Insights"):
-        st.session_state.page = "Model Insights"
-        st.experimental_rerun()
+    # If toggled, display navigation buttons
+    if st.session_state.show_nav:
+        cols = st.columns(4)
+        if cols[0].button("Home"):
+            st.session_state.page = "Home"
+            st.experimental_rerun()
+        if cols[1].button("Patient Entry"):
+            st.session_state.page = "Patient Entry"
+            st.experimental_rerun()
+        if cols[2].button("Monitoring Dashboard"):
+            st.session_state.page = "Monitoring Dashboard"
+            st.experimental_rerun()
+        if cols[3].button("Model Insights"):
+            st.session_state.page = "Model Insights"
+            st.experimental_rerun()
 
 # ---------------------- Caching for Model & Scaler ----------------------
 @st.cache_resource
@@ -183,7 +191,7 @@ if simulate:
 
 # ====================== Navigation & Page Rendering ======================
 if st.session_state.page == "Home":
-    show_nav_bar()  # Display navigation buttons at the top
+    show_nav_menu()  # Display toggle icon and menu if toggled
     # ---------------------- Home Page ----------------------
     img_path = "sepsis.jpg"
     if os.path.exists(img_path):
@@ -226,7 +234,7 @@ if st.session_state.page == "Home":
              <h3 style="font-weight: normal; margin-top: 0; color: white;">Real-time Monitoring & Insights</h3>
              <p style="font-size: 1.2em; margin-top: 20px; color: white;">
                 Welcome to our advanced monitoring system that leverages a Gradient Boosting model to assess sepsis risk in ICU patients.
-                Use the navigation buttons above to input data, view patient trends, and explore model insights.
+                Use the navigation icon above (☰) to input data, view patient trends, and explore model insights.
              </p>
          </div>
     </div>
@@ -241,7 +249,7 @@ if st.session_state.page == "Home":
     st.markdown("<hr>", unsafe_allow_html=True)
 
 elif st.session_state.page == "Patient Entry":
-    show_nav_bar()  # Navigation buttons
+    show_nav_menu()  # Navigation toggle and buttons
     # ---------------------- Patient Entry Page ----------------------
     st.header("Patient Data Entry")
     with st.form(key="patient_entry_form", clear_on_submit=True):
@@ -338,13 +346,13 @@ elif st.session_state.page == "Patient Entry":
         st.plotly_chart(fig_vitals, use_container_width=True)
 
 elif st.session_state.page == "Monitoring Dashboard":
-    show_nav_bar()  # Navigation buttons
+    show_nav_menu()  # Navigation toggle and buttons
     # ---------------------- Monitoring Dashboard Page ----------------------
     st.header("Monitoring Dashboard")
     if st.session_state.patient_data_log.empty:
         st.info("No patient data available yet.")
     else:
-        # Filter by patient – ensure Patient_ID is treated as a string to avoid sorting issues
+        # Filter by patient – convert Patient_ID to string for sorting
         patient_ids = sorted(st.session_state.patient_data_log["Patient_ID"].astype(str).unique())
         selected_patient = st.selectbox("Filter by Patient (select 'All' to view every record)", ["All"] + patient_ids)
         
@@ -382,7 +390,7 @@ elif st.session_state.page == "Monitoring Dashboard":
         st.dataframe(df)
 
 elif st.session_state.page == "Model Insights":
-    show_nav_bar()  # Navigation buttons
+    show_nav_menu()  # Navigation toggle and buttons
     # ---------------------- Model Insights Page ----------------------
     st.header("Model Insights")
     st.write("Generating SHAP feature importance for: **Gradient Boosting Model**")
