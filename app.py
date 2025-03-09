@@ -1,6 +1,6 @@
-import streamlit as st  # Ensure streamlit is imported first
+import streamlit as st  # Import Streamlit first
 
-# Set page configuration (THIS MUST BE THE FIRST STREAMLIT COMMAND)
+# 🔹 MUST BE THE FIRST STREAMLIT COMMAND
 st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
 
 # Now import everything else
@@ -16,7 +16,6 @@ import plotly.express as px
 import shap
 from sklearn.preprocessing import StandardScaler
 import random
-
 
 # Suppress warnings
 warnings.filterwarnings("ignore")
@@ -52,9 +51,6 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# ---------------------- Page Configuration ----------------------
-st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
-
 # ---------------------- Caching for Model & Scaler ----------------------
 @st.cache_resource
 def load_model_and_scaler():
@@ -85,7 +81,7 @@ tabs = st.tabs(["Home", "Patient Entry", "Monitoring Dashboard", "Model Insights
 
 # ---------------------- Tab 0: Home ----------------------
 with tabs[0]:
-    st.header(" ICU Sepsis Monitoring System")
+    st.header("🏥 ICU Sepsis Monitoring System")
 
     st.markdown(f"""
     <div style="background-color: {app_bg}; padding: 20px; border-radius: 10px;">
@@ -134,12 +130,12 @@ with tabs[3]:
             """)
 
             if top_features:
-                st.write("###  **Key Insights from the Model:**")
-                st.write(f" **{top_features[0]}** has the highest influence on predicting sepsis risk.")
+                st.write("### 🚀 **Key Insights from the Model:**")
+                st.write(f"🔹 **{top_features[0]}** has the highest influence on predicting sepsis risk.")
                 if len(top_features) > 1:
-                    st.write(f" **{top_features[1]}** is the second most important feature.")
+                    st.write(f"🔸 **{top_features[1]}** is the second most important feature.")
                 if len(top_features) > 2:
-                    st.write(f" **{top_features[2]}** also plays a significant role.")
+                    st.write(f"🔹 **{top_features[2]}** also plays a significant role.")
 
     else:
         st.info("No data available for SHAP analysis.")
