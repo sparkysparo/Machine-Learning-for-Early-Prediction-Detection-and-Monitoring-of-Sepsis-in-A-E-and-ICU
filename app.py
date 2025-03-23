@@ -117,14 +117,17 @@ DATA_FILE = "patient_data_log.csv"
 if "patient_data_log" not in st.session_state:
     if os.path.exists(DATA_FILE):
         st.session_state.patient_data_log = pd.read_csv(DATA_FILE)
+        # Explicitly convert Timestamp column
+        st.session_state.patient_data_log["Timestamp"] = pd.to_datetime(
+            st.session_state.patient_data_log["Timestamp"], errors='coerce'
+        )
+        st.session_state.patient_data_log.dropna(subset=["Timestamp"], inplace=True)
     else:
         st.session_state.patient_data_log = pd.DataFrame(columns=[
             "Timestamp", "Patient_ID", "Patient_Name", "Plasma_glucose", "Blood_Work_R1",
             "Blood_Pressure", "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age", "Sepsis_Risk"
         ])
 
-def save_data(df):
-    df.to_csv(DATA_FILE, index=False)
 
 # ---------------------- Simulation for Automatic Data Submission ----------------------
 simulate = st.sidebar.checkbox("Simulate Automatic Data Submission", value=False)
@@ -416,7 +419,13 @@ with tabs[4]:
     
     # Perform clustering
     X_train_scaled = scaler.transform(st.session_state.patient_data_log[feature_order])
-    kmeans = KMeans(n_clusters=3)
+    n_samples = len(st.session_state.patient_data_log)
+
+    # Ensure at least 1 cluster, but not more than available samples
+    n_clusters = min(3, n_samples) if n_samples > 0 else 1  
+
+    kmeans = KMeans(n_clusters=n_clusters, n_init=10)  # explicitly set n_init to avoid warnings
+
     st.session_state.patient_data_log["Cluster"] = kmeans.fit_predict(X_train_scaled)
 
     # Visualize clusters
