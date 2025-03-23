@@ -457,27 +457,3 @@ with tabs[4]:
         title="Animated Sepsis Risk Trends"
     )
     st.plotly_chart(fig)
-
-# ---------------------- Data Persistence Setup ----------------------
-DATA_FILE = "patient_data_log.csv"
-if "patient_data_log" not in st.session_state:
-    if os.path.exists(DATA_FILE):
-        st.session_state.patient_data_log = pd.read_csv(DATA_FILE)
-
-        # Robust Timestamp parsing
-        st.session_state.patient_data_log["Timestamp"] = pd.to_datetime(
-            st.session_state.patient_data_log["Timestamp"],
-            format='mixed',
-            errors='coerce'
-        )
-
-        # Drop problematic timestamps
-        st.session_state.patient_data_log.dropna(subset=["Timestamp"], inplace=True)
-
-        # Save cleaned data immediately after loading
-        save_data(st.session_state.patient_data_log)
-    else:
-        st.session_state.patient_data_log = pd.DataFrame(columns=[
-            "Timestamp", "Patient_ID", "Patient_Name", "Plasma_glucose", "Blood_Work_R1",
-            "Blood_Pressure", "Blood_Work_R3", "BMI", "Blood_Work_R4", "Patient_age", "Sepsis_Risk"
-        ])
