@@ -42,6 +42,11 @@ def get_base64_of_bin_file(bin_file):
 def get_img_with_base64(file_path):
     img_base64 = get_base64_of_bin_file(file_path)
     return f"data:image/jpeg;base64,{img_base64}"
+  # ADD THIS HERE:
+def save_data(df):
+    df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors='coerce')
+    df.dropna(subset=["Timestamp"], inplace=True)
+    df.to_csv(DATA_FILE, index=False)
 
 # ---------------------- Page Configuration ----------------------
 st.set_page_config(page_title="ICU Sepsis Monitoring", layout="wide")
