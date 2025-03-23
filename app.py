@@ -130,7 +130,7 @@ def save_data(df):
 simulate = st.sidebar.checkbox("Simulate Automatic Data Submission", value=False)
 if simulate:
     refresh_count = st_autorefresh(interval=5000, limit=100, key="data_simulation")
-    current_time = time.strftime("%H:%M:%S")
+    current_time = time.strftime("%Y-%m-%d %H:%M:%S")
     simulated_data = {
         "Timestamp": current_time,
         "Patient_ID": f"Sim-{random.randint(100,999)}",
@@ -247,7 +247,7 @@ with tabs[1]:
         submit_button = st.form_submit_button("Submit Data")
     
     if submit_button:
-        current_time = time.strftime("%H:%M:%S")
+        current_time = time.strftime("%Y-%m-%d %H:%M:%S")
         data_dict = {
             "Timestamp": current_time,
             "Plasma_glucose": PRG,
