@@ -220,7 +220,7 @@ with tabs[0]:
         - **Patient Entry:** Add new patient data or update existing records.
         - **Monitoring Dashboard:** View trends and logs of patient data.
         - **Model Insights:** Understand model predictions through SHAP explanations.
-        
+        - **Advanced Model Insights:** Explore comprehensive model performance metrics, robustness checks, and in-depth interpretability analyses to assess model generalizability and potential biases across patient subgroups.        
         Use the sidebar to simulate automatic data submissions and switch between Light and Dark themes.
     """)
     st.markdown("<hr>", unsafe_allow_html=True)
