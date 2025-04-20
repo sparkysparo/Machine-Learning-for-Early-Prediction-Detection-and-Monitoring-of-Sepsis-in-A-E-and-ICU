@@ -306,11 +306,11 @@ with tabs[1]:
         st.subheader("Sepsis Risk Prediction")
         st.metric(label="Sepsis Risk Score", value=f"{sepsis_risk:.2f}")
         if sepsis_risk < 0.3:
-            risk_level = "🟢 LOW RISK"
+            risk_level = "LOW RISK"
         elif sepsis_risk < 0.7:
-            risk_level = "🟡 MEDIUM RISK"
+            risk_level = "MEDIUM RISK"
         else:
-            risk_level = "🔴 HIGH RISK - ALERT ICU 🚨"
+            risk_level = "HIGH RISK - ALERT ICU"
             st.error("High sepsis risk detected! Immediate intervention required.")
         st.write(f"Risk Category: {risk_level}")
         
@@ -449,7 +449,7 @@ with tabs[4]:
     
     high_risk_patients = st.session_state.patient_data_log[st.session_state.patient_data_log["Sepsis_Risk"] > 0.7]
     if not high_risk_patients.empty:
-        st.error("🚨 High-Risk Patients Detected! 🚨")
+        st.error("High-Risk Patients Detected")
         st.dataframe(high_risk_patients)
     else:
         st.success("No high-risk patients detected.")
