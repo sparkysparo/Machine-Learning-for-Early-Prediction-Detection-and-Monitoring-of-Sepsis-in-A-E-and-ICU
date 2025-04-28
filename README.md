@@ -64,8 +64,8 @@ The research follows University of Hertfordshire ethical guidance and ensures tr
 ## Usage  
 1. **Clone the repository**:  
 ```bash
-git clone https://github.com/sparkysparo/Sepsis-Prediction-ML.git
-cd Sepsis-Prediction-ML
+git clone https://github.com/sparkysparo/Machine-Learning-for-Early-Prediction-Detection-and-Monitoring-of-Sepsis-in-A-E-and-ICU.git
+cd Machine-Learning-for-Early-Prediction-Detection-and-Monitoring-of-Sepsis-in-A-E-and-ICU
 ```
 
 2. **Install dependencies**:  
